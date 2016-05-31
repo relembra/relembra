@@ -11,7 +11,7 @@ echo "Stopping nginx..."
 # Free the memory for the build process.
 sudo systemctl stop nginx
 
-cd $REPO_ROOT
+cd $REPO_ROOT > /dev/null
 echo "Building uberjar..."
 boot build
 echo "Replacing uberjar..."
@@ -28,5 +28,5 @@ sudo chmod 644 $SVC_DST
 sudo systemctl daemon-reload
 echo "Starting nginx..."
 sudo systemctl start nginx
-cd -
+cd - > /dev/null
 echo "Done."
