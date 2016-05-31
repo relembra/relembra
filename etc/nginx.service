@@ -3,7 +3,7 @@ Description=The NGINX HTTP and reverse proxy server
 After=syslog.target network.target remote-fs.target nss-lookup.target
 
 [Service]
-ExecStart=/opt/nginx-clojure-0.4.4/nginx 2>&1 | logger -t nginx
+ExecStart=/bin/sh -c "/opt/nginx-clojure-0.4.4/nginx 2>&1 | logger -t nginx"
 WorkingDirectory=/opt/nginx-clojure-0.4.4
 PrivateTmp=true
 
