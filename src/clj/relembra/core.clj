@@ -4,6 +4,7 @@
   (:require [clojure.pprint :as pp]
             [compojure.core :refer (defroutes GET POST)]
             [compojure.route :refer (files not-found resources)]
+            [datomic.api :refer (q db) :as d]
             [environ.core :refer (env)]
             [hiccup.core :refer (html)]
             [relembra.github-login :as github-login]

@@ -14,6 +14,7 @@
                  [crypto-random "1.2.0"]
                  [org.clojure/data.json "0.2.6"]
                  [datascript "0.15.0"]
+                 [com.datomic/datomic-free "0.9.5372"]
                  [environ "1.0.2"]
                  [hiccup "1.0.5"]
                  ;; used for the sente adapter in development, and for the http
@@ -38,6 +39,13 @@
   '[crisptrutski.boot-cljs-test  :refer [test-cljs]]
   '[pandeiro.boot-http    :refer [serve]])
 
+(deftask data-readers []
+  (fn [next-task]
+    (fn [fileset]
+      (#'clojure.core/load-data-readers)
+      (with-bindings {#'*data-readers* (.getRawRoot #'*data-readers*)}
+        (next-task fileset)))))
+
 (deftask auto-test []
   (merge-env! :resource-paths #{"test"})
   (comp (watch)
@@ -55,6 +63,7 @@
      (reload :on-jsload 'relembra.core/main
              ;; XXX: make this configurable
              :open-file "emacsclient -n +%s:%s %s")
+     (data-readers)
      (cljs-repl)
      (cljs :source-map true :optimizations :none)
      (target :dir #{"target"})))
