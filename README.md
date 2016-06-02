@@ -41,7 +41,7 @@ script/deploy.sh
 
 ### Details
 
-The production deployment uses [nginx-clojure](https://github.com/nginx-clojure/nginx-clojure) as the web server.  This was chosen for having native support for TLS and for sente[1].
+The production deployment uses [nginx-clojure](https://github.com/nginx-clojure/nginx-clojure) as the web server.  This was chosen for having native support for TLS and for sente.
 
 Our deployment of nginx-clojure was set up manually, roughly following [these steps](https://github.com/nginx-clojure/nginx-clojure/tree/master/example-projects/clojure-web-example).  The only custom parts are the files in [`etc`](https://github.com/getlantern/ops-panel/tree/master/etc).  The (so far unoptimized) configuration for the web server is in [`etc/nginx.conf`](https://github.com/getlantern/ops-panel/blob/master/etc/nginx.conf).  The systemd configuration for this server is in [`etc/nginx.system`](https://github.com/getlantern/ops-panel/blob/master/etc/nginx.system).  Environment variables are edited directly in `/etc/environment` at the production machine.
 
