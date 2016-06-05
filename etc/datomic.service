@@ -2,9 +2,10 @@
 Description=Datomic database
 
 [Service]
-ExecStart=/bin/sh -c "/opt/datomic-free-0.9.5372 /opt/datomic-free-0.9.5372/config/datomic-free-transactor.properties  2>&1 | logger -t datomic"
+ExecStart=/bin/sh -c "/opt/datomic-free-0.9.5372/bin/transactor -Xms200m -Xmx400m /opt/datomic-free-0.9.5372/config/datomic-free-transactor.properties 2>&1 | logger -t datomic"
 WorkingDirectory=/opt/datomic-free-0.9.5372
 PrivateTmp=true
+User=datomic
 
 [Install]
 WantedBy=multi-user.target
