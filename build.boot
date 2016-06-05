@@ -70,6 +70,7 @@
 
 (deftask build []
   (comp
+   (data-readers)
    (cljs :optimizations :advanced)
    (aot :namespace '#{relembra.core})
    (pom :project 'relembra
