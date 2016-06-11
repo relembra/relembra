@@ -22,7 +22,7 @@ def backup():
     if retcode != 0:
         warn("Couldn't backup")
         return
-    retcode = os.system("/usr/bin/rclone --checksum %s acd:relembra-backup-%s" % wda)
+    retcode = os.system("/usr/bin/rclone --checksum sync %s acd:relembra-backup-%s" % (backup_path, wda))
     if retcode != 0:
         warn("Couldn't upload backup")
 
