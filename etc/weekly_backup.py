@@ -16,7 +16,7 @@ def backup():
     backup_root = "/opt/datomic-free-0.9.5372/bak"
     tar_name = "%s.tar.xz" % day_abbrev()
     os.chdir(backup_root)
-    retcode = os.system("tar -cJf %s mon" % tar_name)
+    retcode = os.system("tar -cJvf %s mon" % tar_name)
     if retcode != 0:
         warn("Couldn't tar")
         return
