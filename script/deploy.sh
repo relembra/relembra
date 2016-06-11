@@ -42,10 +42,6 @@ sudo cp etc/nginx.service $SVC_DST
 sudo chown root:root $SVC_DST
 sudo chmod 644 $SVC_DST
 
-sudo cp etc/backup_daily.py /usr/bin
-sudo chown root:root /usr/bin/backup_daily.py
-sudo chmod 755 /usr/bin/backup_daily.py
-
 sudo systemctl daemon-reload
 
 echo "Starting datomic..."
@@ -53,6 +49,16 @@ sudo systemctl start datomic
 
 echo "Starting nginx..."
 sudo systemctl start nginx
+
+echo "Updating backup scripts..."
+
+sudo cp etc/daily_backup.py /usr/bin
+sudo chown root:root /usr/bin/daily_backup.py
+sudo chmod 755 /usr/bin/daily_backup.py
+
+sudo cp etc/weekly_backup.py /usr/bin
+sudo chown root:root /usr/bin/weekly_backup.py
+sudo chmod 755 /usr/bin/weekly_backup.py
 
 cd - > /dev/null
 echo "Done."
