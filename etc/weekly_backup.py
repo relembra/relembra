@@ -14,10 +14,9 @@ def warn(txt):
 
 def backup():
     backup_root = "/opt/datomic-free-0.9.5372/bak"
-    backup_path = os.path.join(backup_root, 'mon')
     tar_name = "%s.tar.xz" % day_abbrev()
     os.chdir(backup_root)
-    retcode = os.system("tar -cJf %s %s" % (tar_name, backup_path))
+    retcode = os.system("tar -cJf %s mon" % tar_name)
     if retcode != 0:
         warn("Couldn't tar")
         return
