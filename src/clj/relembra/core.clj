@@ -77,7 +77,7 @@
   (GET  "/chsk" req (ring-ajax-get-or-ws-handshake req))
   (POST "/chsk" req (ring-ajax-post req))
 
-  (resources "/")
+  (resources "/public")
   (files "/")
   (not-found "Page not found."))
 
