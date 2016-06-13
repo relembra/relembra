@@ -63,9 +63,7 @@
                   [:div "An amazing repetition spacing webapp will be here Soon&trade;!"]
                   [:div#app_container
                    [:script {:type "text/javascript" :src "js/main.js"}]
-                   [:script {:type "text/javascript"} "relembra.core.main();"]]
-                  [:h2 "Your request"]
-                  [:div [:pre (with-out-str (pp/pprint req))]]])}
+                   [:script {:type "text/javascript"} "relembra.core.main();"]]])}
     (github-login/login req)))
 
 (defroutes handler
