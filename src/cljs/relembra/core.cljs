@@ -22,6 +22,11 @@
                 (p/posh! conn)
                 conn))
 
+(defn try-katex [txt]
+  (try
+    (.renderToString js/katex txt)
+    (catch js/Error _ txt)))
+
 (defn app []
   (let [editor-text @(p/q conn
                           '[:find ?c .
@@ -35,7 +40,7 @@
                                  (p/transact! conn
                                               [{:db/id 0 :editor/text (.. e -target -value)}]))} ]
      [:td {:valign "top"
-           :dangerouslySetInnerHTML {:__html (md->html editor-text)}}]]))
+           :dangerouslySetInnerHTML {:__html (md->html (try-katex editor-text))}}]]))
 
 (defn ^:export main []
   (r/render [app]

@@ -56,7 +56,9 @@
   (if-let [user (get-in req [:session :user])]
     {:status 200
      :headers {"content-type" "text/html"}
-     :body (html [:head [:title "relembra (WIP)"]]
+     :body (html [:head [:title "relembra (WIP)"]
+                  [:link {:rel "stylesheet" :href "https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.6.0/katex.min.css"}]
+                  [:script {:src "https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.6.0/katex.min.js"}]]
                  [:body
                   [:h2 "Relembra (WIP)"]
                   [:div (str "Hello, " user "!")]
