@@ -22,20 +22,27 @@
                 (p/posh! conn)
                 conn))
 
+(def mathjax-update-wrapper
+  (with-meta identity
+    {:component-did-update #(js/MathJax.Hub.Queue
+                             (array "Typeset"
+                                    js/MathJax.Hub
+                                    ))}))
+
 (defn app []
   (let [editor-text @(p/q conn
                           '[:find ?c .
                             :where [0 :editor/text ?c]])]
-    [:table>tbody>tr
-     [:td>textarea {:rows 40
-                    :cols 80
-                    :id "input"
-                    :value editor-text
-                    :on-change (fn [e]
-                                 (p/transact! conn
-                                              [{:db/id 0 :editor/text (.. e -target -value)}]))} ]
-     [:td {:valign "top"
-           :dangerouslySetInnerHTML {:__html (md->html editor-text)}}]]))
+    [:div "Esta é a área $a_0$."
+     [:table>tbody>tr
+      [:td>textarea {:rows 40
+                     :cols 80
+                     :id "input"
+                     :value editor-text
+                     :on-change (fn [e]
+                                  (p/transact! conn
+                                               [{:db/id 0 :editor/text (.. e -target -value)}]))} ]
+      [:td {:valign "top"} [:div {:id "preview" :dangerouslySetInnerHTML {:__html (md->html editor-text)}}]]]]))
 
 (defn ^:export main []
   (r/render [app]
