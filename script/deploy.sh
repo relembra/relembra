@@ -50,5 +50,15 @@ sudo systemctl start datomic
 echo "Starting nginx..."
 sudo systemctl start nginx
 
+echo "Updating backup scripts..."
+
+sudo cp etc/daily_backup.py /usr/bin
+sudo chown root:root /usr/bin/daily_backup.py
+sudo chmod 755 /usr/bin/daily_backup.py
+
+sudo cp etc/weekly_backup.py /usr/bin
+sudo chown root:root /usr/bin/weekly_backup.py
+sudo chmod 755 /usr/bin/weekly_backup.py
+
 cd - > /dev/null
 echo "Done."
