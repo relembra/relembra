@@ -64,7 +64,6 @@
                  [:body
                   [:h2 "Relembra (WIP)"]
                   [:div (str "Hello, " user "!")]
-                  [:div "An amazing repetition spacing webapp $x = (-b +- sqrt(b^2-4ac))/(2a) .$ will be here Soon&trade;!"]
                   [:div#app_container
                    [:script {:type "text/javascript" :src "js/main.js"}]
                    [:script {:type "text/javascript"} "relembra.core.main();"]]])}

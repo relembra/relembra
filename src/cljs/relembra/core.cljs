@@ -26,27 +26,26 @@
   (.log js/console "Updating!")
   (js/MathJax.Hub.Queue (array "Typeset" js/MathJax.Hub (r/dom-node c))))
 
-(defn mathjax-box [text]
+(defn markdown-box [text]
   [:div {:id "preview" :dangerouslySetInnerHTML {:__html (md->html text)}}])
 
-(def mathjax-box2 (with-meta mathjax-box {:component-did-mount typeset
-                                          :component-did-update typeset}))
+(def mathjax-box
+  (with-meta markdown-box
+    {:component-did-mount typeset
+     :component-did-update typeset}))
 
 (defn app []
   (let [editor-text @(p/q conn
                           '[:find ?c .
                             :where [0 :editor/text ?c]])]
-    [:div {:id "um"} (str "Esta é a área $a_0$: " editor-text)
-     [:table>tbody>tr
+    [:table>tbody>tr
       [:td>textarea {:rows 40
                      :cols 80
-                     :id "input"
                      :value editor-text
                      :on-change (fn [e]
                                   (p/transact! conn
                                                [{:db/id 0 :editor/text (.. e -target -value)}]))} ]
-      [:td {:valign "top"} [mathjax-box2 editor-text]]
-      [:td {:valign "top"} editor-text]]]))
+      [:td {:valign "top"} [mathjax-box editor-text]]]))
 
 
 (defn ^:export main []
