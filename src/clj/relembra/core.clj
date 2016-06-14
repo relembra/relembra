@@ -58,7 +58,7 @@
      :headers {"content-type" "text/html"}
      :body (html [:head [:title "relembra (WIP)"]
                   [:script {:type "text/x-mathjax-config"}
-                   "MathJax.Hub.Config({asciimath2jax: {delimiters: [['$','$']]}});"]
+                   "MathJax.Hub.Config({asciimath2jax: {delimiters: [['¿','¿']]}});"]
                   [:script {:type "text/javascript" :async true
                             :src "https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=AM_CHTML"}]]
                  [:body
