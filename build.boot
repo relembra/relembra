@@ -20,7 +20,7 @@
                  ;; used for the sente adapter in development, and for the http
                  ;; client
                  [http-kit "2.1.19"]  ;; same as used by boot-http
-                 [markdown-clj "0.9.89+literal"]
+                 [markdown-clj "0.9.90+estevo4"]
                  ;; used for the sente adapter in deployment
                  [nginx-clojure "0.4.4"]
                  [com.cemerick/piggieback "0.2.1" :scope "test"]

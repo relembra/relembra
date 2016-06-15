@@ -27,7 +27,7 @@
   (js/MathJax.Hub.Queue (array "Typeset" js/MathJax.Hub (r/dom-node c))))
 
 (defn markdown-box [text]
-  [:div {:id "preview" :dangerouslySetInnerHTML {:__html (md->html text)}}])
+  [:div {:id "preview" :dangerouslySetInnerHTML {:__html (md->html text :inhibit-separator "$")}}])
 
 (def mathjax-box
   (with-meta markdown-box
