@@ -1,13 +1,15 @@
 ;;; Compojure and Sente routing.
 
 (ns relembra.core
-  (:require [clojure.pprint :as pp]
+  (:require [clojure.java.io :as io]
+            [clojure.pprint :as pp]
             [compojure.core :refer (defroutes GET POST)]
             [compojure.route :refer (files not-found resources)]
             [datomic.api :refer (q db) :as d]
             [environ.core :refer (env)]
             [hiccup.core :refer (html)]
             [relembra.github-login :as github-login]
+            [ring.middleware.anti-forgery :refer (*anti-forgery-token*)]
             [ring.middleware.defaults :refer (wrap-defaults site-defaults)]
             [taoensso.sente :as sente]
             [taoensso.sente.server-adapters.http-kit :as http-kit-adapter]
@@ -64,14 +66,25 @@
                  [:body
                   [:h2 "Relembra (WIP)"]
                   [:div (str "Hello, " user "!")]
+                  [:form {:method "post" :action "/sube" :enctype "multipart/form-data"}
+                   [:input {:type "file" :name "arquivo"}]
+                   [:input {:type "hidden" :name "__anti-forgery-token" :value *anti-forgery-token*}]
+                   [:input {:type "submit" :value "Manda!"}]]
                   [:div#app_container
                    [:script {:type "text/javascript" :src "js/main.js"}]
                    [:script {:type "text/javascript"} "relembra.core.main();"]]])}
     (github-login/login req)))
 
+(defn sube [arquivo]
+  (io/copy (:tempfile arquivo) (io/file (str "/home/es/tmp/KOPIAU-" (:filename arquivo))))
+  {:status 200
+   :headers {"Content-Type" "text/plain"}
+   :body (slurp (:tempfile arquivo))})
+
 (defroutes handler
 
   (GET "/" req (root req))
+  (POST "/sube" [arquivo] (sube arquivo))
   (GET "/github-auth-cb" [code state :as req]
     (github-login/github-auth-cb code state (get req :session {})))
   ;; sente
