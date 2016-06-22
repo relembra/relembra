@@ -1,0 +1,104 @@
+[
+ ;; user
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :user/github-name
+  :db/valueType :db.type/string
+  :db/cardinality :db.cardinality/one
+  :db/unique :db.unique/identity
+  :db/fulltext true
+  :db/doc "A user's github username"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :user/of-mappings
+  :db/valueType :db.type/ref
+  :db/cardinality :db.cardinality/many
+  :db/isComponent true
+  :db/index true
+  :db/doc "The entries in the user's optimal factor matrix"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :user/lembrandos
+  :db/valueType :db.type/ref
+  :db/cardinality :db.cardinality/many
+  :db/isComponent true
+  :db/index true
+  :db/doc "The state of the user's remembering items"
+  :db.install/_attribute :db.part/db}
+
+ ;; question
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :question/body
+  :db/valueType :db.type/string
+  :db/cardinality :db.cardinality/one
+  :db/fulltext true
+  :db/doc "A question's body"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :question/answer
+  :db/valueType :db.type/string
+  :db/cardinality :db.cardinality/one
+  :db/fulltext true
+  :db/doc "The body of a question's answer"
+  :db.install/_attribute :db.part/db}
+
+ ;; optimal factor mapping entry
+ ;; we use the lembrando's easiness factor and repetition number for the keys of
+ ;; the entry
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :of-mapping-entry/value
+  :db/valueType :db.type/float
+  :db/cardinality :db.cardinality/one
+  :db/doc "The optimal factor value"
+  :db.install/_attribute :db.part/db}
+
+ ;; lembrando
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :lembrando/question
+  :db/valueType :db.type/ref
+  :db/cardinality :db.cardinality/one
+  :db/doc "The question that is being remembered"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :lembrando/repetition-number
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one
+  :db/doc "Repetition number for the purpose of computing intervals"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :lembrando/easiness
+  :db/valueType :db.type/float
+  :db/cardinality :db.cardinality/one
+  :db/doc "Easiness factor"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :lembrando/last-interval
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one
+  :db/doc "Last interval for the purpose of adjusting optimal factors"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :lembrando/used-of
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one
+  :db/doc "Optimal factor used to compute last interval, for the purpose of adjusting optimal factors"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :lembrando/needs-repeat?
+  :db/valueType :db.type/boolean
+  :db/cardinality :db.cardinality/one
+  :db/doc "Whether this lembrando has been forgotten in a recent session, and thus needs repeating until it gets a quality of 4 or more"
+  :db.install/_attribute :db.part/db}
+
+ ]
