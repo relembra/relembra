@@ -41,13 +41,6 @@
   '[crisptrutski.boot-cljs-test  :refer [test-cljs]]
   '[pandeiro.boot-http    :refer [serve]])
 
-(deftask data-readers []
-  (fn [next-task]
-    (fn [fileset]
-      (#'clojure.core/load-data-readers)
-      (with-bindings {#'*data-readers* (.getRawRoot #'*data-readers*)}
-        (next-task fileset)))))
-
 (deftask auto-test []
   (merge-env! :resource-paths #{"test"})
   (comp (watch)
@@ -65,14 +58,12 @@
      (reload :on-jsload 'relembra.core/main
              ;; XXX: make this configurable
              :open-file "emacsclient -n +%s:%s %s")
-     (data-readers)
      (cljs-repl)
      (cljs :source-map true :optimizations :none)
      (target :dir #{"target"})))
 
 (deftask build []
   (comp
-   (data-readers)
    (cljs :optimizations :advanced)
    (aot :namespace '#{relembra.core})
    (pom :project 'relembra
