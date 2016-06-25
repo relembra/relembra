@@ -18,12 +18,12 @@
 
 (defonce conn (let [conn (d/create-conn)]
                 (d/transact! conn [{:db/id 0
-                                    :editor/text ""}])
+                                    :addq/question-text ""
+                                    :addq/answer-text ""}])
                 (p/posh! conn)
                 conn))
 
 (defn typeset [c]
-  (.log js/console "Updating!")
   (js/MathJax.Hub.Queue (array "Typeset" js/MathJax.Hub (r/dom-node c))))
 
 (defn markdown-box [text]
@@ -34,19 +34,24 @@
     {:component-did-mount typeset
      :component-did-update typeset}))
 
-(defn app []
-  (let [editor-text @(p/q conn
-                          '[:find ?c .
-                            :where [0 :editor/text ?c]])]
-    [:table>tbody>tr
-      [:td>textarea {:rows 40
-                     :cols 80
-                     :value editor-text
-                     :on-change (fn [e]
-                                  (p/transact! conn
-                                               [{:db/id 0 :editor/text (.. e -target -value)}]))} ]
-      [:td {:valign "top"} [mathjax-box editor-text]]]))
+(defn md-editor [k]
+  (let [text @(p/q conn '[:find ?c .
+                          :in $ ?k
+                          :where [0 ?k ?c]]
+                   k)]
+    [:tr
+     [:td>textarea {:rows 20
+                    :cols 80
+                    :value text
+                    :on-change (fn [e]
+                                 (p/transact! conn
+                                              [{:db/id 0 k (.. e -target -value)}]))} ]
+     [:td {:valign "top"} [mathjax-box text]]]))
 
+(defn app []
+  [:table>tbody
+   [md-editor :addq/question-text]
+   [md-editor :addq/answer-text]])
 
 (defn ^:export main []
   (r/render [app]
