@@ -46,6 +46,13 @@
   :db/doc "The body of a question's answer"
   :db.install/_attribute :db.part/db}
 
+ {:db/id #db/id[:db.part/db]
+  :db/ident :question/owner
+  :db/valueType :db.type/ref
+  :db/cardinality :db.cardinality/one
+  :db/doc "The user which created this question, and the only one who can edit it"
+  :db.install/_attribute :db.part/db}
+
  ;; optimal factor mapping entry
  ;; we use the lembrando's easiness factor and repetition number for the keys of
  ;; the entry
