@@ -4,7 +4,7 @@
   (:require [clojure.pprint :as pp]
             [compojure.core :refer (defroutes GET POST)]
             [compojure.route :refer (files not-found resources)]
-            [datomic.api :refer (q db) :as d]
+            [datomic.api :as d]
             [environ.core :refer (env)]
             [hiccup.core :refer (html)]
             [relembra.github-login :as github-login]
@@ -52,21 +52,37 @@
           (sente/start-server-chsk-router!
            ch-chsk sente-handler)))
 
+(def conn (delay (d/connect "datomic:free://localhost:4334/relembra")))
+
+(defn assure-user-inited [user]
+  (when-not (d/q '[:find ?u .
+                   :in $ ?n
+                   :where [?u :user/github-name ?n]]
+                 (d/db @conn)
+                 user)
+    ;; XXX: log to timbre instead
+    (println "User " user " was unknown; initializing...")
+    @(d/transact @conn [{:db/id #db/id[:db.part/user]
+                         :user/github-name user}])))
+
 (defn root [req]
   (if-let [user (get-in req [:session :user])]
-    {:status 200
-     :headers {"content-type" "text/html"}
-     :body (html [:head [:title "relembra (WIP)"]
-                  [:script {:type "text/x-mathjax-config"}
-                   "MathJax.Hub.Config({asciimath2jax: {delimiters: [['¡','¡']]}});"]
-                  [:script {:type "text/javascript" :async true
-                            :src "https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=AM_CHTML"}]]
-                 [:body
-                  [:h2 "Relembra (WIP)"]
-                  [:div (str "Olá, " user "!")]
-                  [:div#app_container
-                   [:script {:type "text/javascript" :src "js/main.js"}]
-                   [:script {:type "text/javascript"} "relembra.core.main();"]]])}
+    (do
+      (assure-user-inited user)
+      {:status 200
+       :headers {"content-type" "text/html"}
+       :body (html [:head [:title "relembra (WIP)"]
+                    [:link {:rel "stylesheet" :href "https://cdn.jsdelivr.net/font-hack/2.020/css/hack-extended.min.css"}]
+                    [:link {:rel "stylesheet" :href "https://fonts.googleapis.com/css?family=Roboto:400,300,500&amp;subset=latin" :media "all"}]
+                    [:link {:rel "stylesheet" :href "https://cdn.jsdelivr.net/flexboxgrid/6.3.0/flexboxgrid.min.css" :type "text/css"}]
+                    [:script {:type "text/x-mathjax-config"}
+                     "MathJax.Hub.Config({asciimath2jax: {delimiters: [['¡','¡']]}});"]
+                    [:script {:type "text/javascript" :async true
+                              :src "https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=AM_CHTML"}]]
+                   [:body
+                    [:div#app_container
+                     [:script {:type "text/javascript" :src "js/main.js"}]
+                     [:script {:type "text/javascript"} "relembra.core.main();"]]])})
     (github-login/login req)))
 
 (defroutes handler
