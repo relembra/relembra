@@ -73,6 +73,7 @@
        :headers {"content-type" "text/html"}
        :body (html [:head [:title "relembra (WIP)"]
                     [:link {:rel "stylesheet" :href "https://cdn.jsdelivr.net/font-hack/2.020/css/hack-extended.min.css"}]
+                    [:link {:rel "stylesheet" :href "https://fonts.googleapis.com/css?family=Yrsa"}]
                     [:link {:rel "stylesheet" :href "https://fonts.googleapis.com/css?family=Roboto:400,300,500&amp;subset=latin" :media "all"}]
                     [:link {:rel "stylesheet" :href "https://cdn.jsdelivr.net/flexboxgrid/6.3.0/flexboxgrid.min.css" :type "text/css"}]
                     [:script {:type "text/x-mathjax-config"}

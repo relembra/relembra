@@ -40,7 +40,7 @@
   (js/MathJax.Hub.Queue (array "Typeset" js/MathJax.Hub (r/dom-node c))))
 
 (defn markdown-box [text]
-  [:div {:id "preview" :dangerouslySetInnerHTML {:__html (md->html text :inhibit-separator "$")}}])
+  [:div {:dangerouslySetInnerHTML {:__html (md->html text :inhibit-separator "$")}}])
 
 (def mathjax-box
   (with-meta markdown-box
@@ -67,15 +67,11 @@
                 :in $ ?k
                 :where [0 ?k ?c]]
         text @(p/q query conn value-k)]
-    [:div.row.between-xs {:style {:padding-top "1.5em"}}
-      [:div.col-xs-12.col-sm-5
-       [:div.box
-        [text-field title value-k text]]]
-     (when-not (clojure.string/blank? text)
-       [:div.col-xs-12.col-sm-6 {:style {:padding-top "1em"}}
-        [:div.box
-         [rui/paper {:style {:padding "0.5em 1.2em"}}
-          [mathjax-box text]]]])]))
+    [:div.row.around-xs {:style {:margin-top "1em" :margin-bottom "1em"}}
+     [:div.col-xs-12.col-sm-5
+      [text-field title value-k text]]
+     [:div.col-xs-12.col-sm-6 {:style {:padding-top "0.5em" :font-family "Yrsa, serif" :font-size "120%"}}
+      [mathjax-box text]]]))
 
 (defn app []
   [:div
@@ -86,7 +82,7 @@
      [:div.container
       [md-editor "Pergunta" :addq/question-text :addq/question-caret]
       [md-editor "Resposta" :addq/answer-text :addq/answer-caret]
-      [:div.row {:style {:padding "30px 10px"}}
+      [:div.row {:style {:padding "0px 10px"}}
        [:div.col
         [:div.box
          [rui/flat-button {:label "Acrescentar"

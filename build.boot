@@ -7,7 +7,7 @@
                  [pandeiro/boot-http "0.7.3" :scope "test"]
                  [crisptrutski/boot-cljs-test "0.2.2-SNAPSHOT" :scope "test"]
                  [boot-environ "1.0.3"]
-                 [cljs-react-material-ui "0.2.19"]
+                 [cljs-react-material-ui "0.2.20"]
                  [org.clojure/clojure "1.8.0"]
                  [org.clojure/clojurescript "1.9.36"]
                  [compojure "1.4.0"]
