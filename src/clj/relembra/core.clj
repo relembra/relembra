@@ -15,6 +15,8 @@
 
 (def in-development (= (env :in-development) "indeed"))
 
+(def conn (delay (d/connect "datomic:free://localhost:4334/relembra")))
+
 ;; sente setup
 
 (let [{:keys [ch-recv send-fn ajax-post-fn ajax-get-or-ws-handshake-fn
@@ -44,6 +46,10 @@
   [{:as ev-msg :keys [event id ?data ring-req ?reply-fn send-fn]}]
   (?reply-fn (inc ?data)))
 
+(defmethod sente-handler :db/query
+  [{:as ev-msg :keys [event id [query & args] ring-req ?reply-fn send-fn]}]
+  (?reply-fn (apply d/q query (d/db @conn) args)))
+
 (defonce router_ (atom nil))
 (defn  stop-router! [] (when-let [stop-f @router_] (stop-f)))
 (defn start-router! []
@@ -52,7 +58,6 @@
           (sente/start-server-chsk-router!
            ch-chsk sente-handler)))
 
-(def conn (delay (d/connect "datomic:free://localhost:4334/relembra")))
 
 (defn assure-user-inited [user]
   (when-not (d/q '[:find ?u .

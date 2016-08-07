@@ -26,7 +26,8 @@
   (def chsk-state state))
 
 (defonce conn (let [conn (d/create-conn)]
-                (d/transact! conn [{:db/id 0
+                (d/transact! conn [{:init/loading true
+                                    :db/id 0
                                     :drawer/open false
                                     :addq/question-text ""
                                     :addq/answer-text ""}])
@@ -99,23 +100,35 @@
                         (close-drawer))}
       "Item 2"]]))
 
-(defn app []
+(defn add-lembrando []
   [:div
-   [rui/mui-theme-provider
-    {:mui-theme (ui/get-mui-theme {:palette {:text-color (ui/color :teal600)}})}
-    [:div
-     [rui/app-bar {:title "Acrescenta pergunta"
-                   :on-left-icon-button-touch-tap open-drawer}]
-     [drawer]
-     [:div.container
-      [md-editor "Pergunta" :addq/question-text :addq/question-caret]
-      [md-editor "Resposta" :addq/answer-text :addq/answer-caret]
-      [:div.row {:style {:padding "0px 10px"}}
-       [:div.col
-        [:div.box
-         [rui/flat-button {:label "Acrescentar"
-                           :icon (icons/content-add-circle)
-                           :on-touch-tap #(println "clicau!")}]]]]]]]])
+   [rui/app-bar {:title "Acrescenta pergunta"
+                 :on-left-icon-button-touch-tap open-drawer}]
+   [drawer]
+   [:div.container
+    [md-editor "Pergunta" :addq/question-text :addq/question-caret]
+    [md-editor "Resposta" :addq/answer-text :addq/answer-caret]
+    [:div.row {:style {:padding "0px 10px"}}
+     [:div.col
+      [:div.box
+       [rui/flat-button {:label "Acrescentar"
+                         :icon (icons/content-add-circle)
+                         :on-touch-tap #(println "clicau!")}]]]]]])
+
+(defn loading-screen []
+  [:div.container
+   [:div.row.center-xs {:style {:margin-top 50 :padding-left "1em"}}
+    [:h1 {:style {:font-family "Roboto" :font-weight 300 :color (ui/color :teal600)}} "Carregando..."]]
+   [:div.row.center-xs
+    [rui/circular-progress]]])
+
+(defn app []
+  (let [loading? @(p/q '[:find ?l . :where [0 :init/loading ?l]] conn)]
+    [rui/mui-theme-provider
+     {:mui-theme (ui/get-mui-theme {:palette {:text-color (ui/color :teal600)}})}
+     (if loading?
+       [loading-screen]
+       [add-lembrando])]))
 
 (defn ^:export main []
   (r/render [app]
