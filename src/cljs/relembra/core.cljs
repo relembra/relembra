@@ -72,22 +72,31 @@
      [:div.col-xs-12.col-sm-6 {:style {:padding-top "0.5em" :font-family "Yrsa, serif" :font-size "120%"}}
       [mathjax-box text]]]))
 
+(defn toggle-drawer [b]
+  (p/transact! conn [{:db/id 0 :drawer/open b}]))
+
+(defn open-drawer [& args]
+  (toggle-drawer true))
+
+(defn close-drawer [& args]
+  (toggle-drawer false))
+
 (defn drawer []
   (let [open @(p/q '[:find ?x . :where [0 :drawer/open ?x]] conn)]
     [rui/drawer
      {:docked false
       :width 200
       :open open
-      :on-request-change (fn [x] (println "on-request-change" x))}
+      :on-request-change toggle-drawer}
      [rui/menu-item {:on-touch-tap
                      (fn [x]
                         (println "on-touch-tap-1" x)
-                        (p/transact! conn [{:db/id 0 :drawer/open false}]))}
+                        (close-drawer))}
       "Item 1"]
      [rui/menu-item {:on-touch-tap
                      (fn[x]
                         (println "on-touch-tap-2" x)
-                        (p/transact! conn [{:db/id 0 :drawer/open false}]))}
+                        (close-drawer))}
       "Item 2"]]))
 
 (defn app []
@@ -96,7 +105,7 @@
     {:mui-theme (ui/get-mui-theme {:palette {:text-color (ui/color :teal600)}})}
     [:div
      [rui/app-bar {:title "Acrescenta pergunta"
-                   :on-left-icon-button-touch-tap #(p/transact! conn [{:db/id 0 :drawer/open true}])}]
+                   :on-left-icon-button-touch-tap open-drawer}]
      [drawer]
      [:div.container
       [md-editor "Pergunta" :addq/question-text :addq/question-caret]
