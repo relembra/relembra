@@ -27,10 +27,9 @@
 
 (defonce conn (let [conn (d/create-conn)]
                 (d/transact! conn [{:db/id 0
+                                    :drawer/open false
                                     :addq/question-text ""
-                                    :addq/question-caret 0
-                                    :addq/answer-text ""
-                                    :addq/answer-caret 0}])
+                                    :addq/answer-text ""}])
                 (p/posh! conn)
                 conn))
 
@@ -73,12 +72,32 @@
      [:div.col-xs-12.col-sm-6 {:style {:padding-top "0.5em" :font-family "Yrsa, serif" :font-size "120%"}}
       [mathjax-box text]]]))
 
+(defn drawer []
+  (let [open @(p/q '[:find ?x . :where [0 :drawer/open ?x]] conn)]
+    [rui/drawer
+     {:docked false
+      :width 200
+      :open open
+      :on-request-change (fn [x] (println "on-request-change" x))}
+     [rui/menu-item {:on-touch-tap
+                     (fn [x]
+                        (println "on-touch-tap-1" x)
+                        (p/transact! conn [{:db/id 0 :drawer/open false}]))}
+      "Item 1"]
+     [rui/menu-item {:on-touch-tap
+                     (fn[x]
+                        (println "on-touch-tap-2" x)
+                        (p/transact! conn [{:db/id 0 :drawer/open false}]))}
+      "Item 2"]]))
+
 (defn app []
   [:div
    [rui/mui-theme-provider
-    {:mui-theme (ui/get-mui-theme {:palette {:text-color (ui/color :cyan900)}})}
+    {:mui-theme (ui/get-mui-theme {:palette {:text-color (ui/color :teal600)}})}
     [:div
-     [rui/app-bar {:title "Acrescenta pergunta"}]
+     [rui/app-bar {:title "Acrescenta pergunta"
+                   :on-left-icon-button-touch-tap #(p/transact! conn [{:db/id 0 :drawer/open true}])}]
+     [drawer]
      [:div.container
       [md-editor "Pergunta" :addq/question-text :addq/question-caret]
       [md-editor "Resposta" :addq/answer-text :addq/answer-caret]
