@@ -56,23 +56,27 @@
   [{:as ev-msg :keys [event]}]
   (println "Unhandled klient event: %s" event))
 
+(def inited (atom false))
+
 (defmethod -event-msg-handler :chsk/state
-  [{:as ev-msg :keys [?data]}]
-  (let [[old-state-map new-state-map] ?data]
-    (if (:first-open? new-state-map)
-      (chsk-send! [:db/query ['[:find (pull ?l [*])
-                                :in $ ?n
-                                :where
-                                [?u :user/github-name ?n]
-                                [?u :user/lembrandos ?l]]
-                              (:uid new-state-map)]]
-                  10000
-                  (fn [ret]
-                    (.log js/console (str "Returned: " ret))
-                    (p/transact! conn
-                                 (into [{:db/id 0 :screen/current :welcome}]
-                                       ret))))
-      (.log js/console (str "Channel socket state change: " new-state-map)))))
+  [{[_ {:keys [uid] :as new-state-map}] :?data}]
+  (if (= uid :taoensso.sente/nil-uid)
+    (.log js/console (str "Channel socket state change: " new-state-map))
+    (swap! inited (fn [old]
+                    (or old
+                        (do
+                          (chsk-send! [:db/query ['[:find (pull ?l [*])
+                                                    :in $ ?u
+                                                    :where
+                                                    [?u :user/lembrandos ?l]]
+                                                  uid]]
+                                      10000
+                                      (fn [ret]
+                                        (.log js/console (str "Returned: " ret))
+                                        (p/transact! conn
+                                                     (into [{:db/id 0 :screen/current :welcome}]
+                                                           ret))))
+                          true))))))
 
 (defmethod -event-msg-handler :chsk/recv
   [{:as ev-msg :keys [?data]}]
@@ -150,11 +154,6 @@
                         (close-drawer))}
       "Item 2"]]))
 
-(defn query [& args]
-  (chsk-send! [:db/query ['[:find ?l :in $ ?n :where [?l :user/github-name ?n]] "euccastro"]]
-              8000
-              (fn [res] (js/alert (str "Result was " res)))))
-
 (defn add-lembrando []
   [:div
    [rui/app-bar {:title "Acrescenta pergunta"
@@ -168,7 +167,7 @@
       [:div.box
        [rui/flat-button {:label "Acrescentar"
                          :icon (icons/content-add-circle)
-                         :on-touch-tap query}]]]]]])
+                         :on-touch-tap println}]]]]]])
 
 (defn loading []
   [:div.container

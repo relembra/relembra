@@ -58,13 +58,13 @@
           (let [user-resp @(http/get "https://api.github.com/user"
                                      {:headers {"Accept" "application/json"
                                                 "Authorization" (str "token " access-token)}})
-                user (get (json/read-str (:body user-resp))
-                          "login")
+                user-name (get (json/read-str (:body user-resp))
+                               "login")
                 original-path (get session :github-login-original-path "/")]
             {:status 303
              :headers {"content-type" "text/html"
                        "location" original-path}
-             :session (assoc session :user (str user) :uid (str user))
+             :session (assoc session :user/github-name user-name)
              :body (html [:head [:title "Login successful"]]
                          [:body [:h1 "Login successful"]
                           [:p "Redirecting you to "

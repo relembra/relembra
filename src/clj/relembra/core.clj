@@ -66,23 +66,17 @@
            ch-chsk sente-handler)))
 
 
-(defn assure-user-inited [user]
-  (when-not (d/q '[:find ?u .
-                   :in $ ?n
-                   :where [?u :user/github-name ?n]]
-                 (d/db @conn)
-                 user)
-    ;; XXX: log to timbre instead
-    (println "User " user " was unknown; initializing...")
-    @(d/transact @conn [{:db/id #db/id[:db.part/user]
-                         :user/github-name user}])))
+(defn user-id [github-name]
+  (let [tempid (d/tempid :db.part/user -1)
+        report @(d/transact @conn [{:db/id tempid :user/github-name github-name}])]
+    (d/resolve-tempid (:db-after report) (:tempids report) tempid)))
 
 (defn root [req]
-  (if-let [user (get-in req [:session :user])]
+  (if-let [github-name (get-in req [:session :user/github-name])]
     (do
-      (assure-user-inited user)
       {:status 200
        :headers {"content-type" "text/html"}
+       :session (assoc (:session  req) :uid (user-id github-name))
        :body (html [:head [:title "relembra (WIP)"]
                     [:link {:rel "stylesheet" :href "https://cdn.jsdelivr.net/font-hack/2.020/css/hack-extended.min.css"}]
                     [:link {:rel "stylesheet" :href "https://fonts.googleapis.com/css?family=Yrsa"}]
