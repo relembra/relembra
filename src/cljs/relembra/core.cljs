@@ -184,7 +184,7 @@
   (let [lembrandos (d/q '[:find [?l ...] :where [?l :lembrando/question]] @conn)]
     [screen "Bem vindo!"
      (if (> (count lembrandos) 0)
-       [:div "Tes lembrandos!"]
+       [:div (str "Tes " (count lembrandos)" lembrandos!")]
        [:div "Nom tes!"])]))
 
 (def screens {:loading loading
