@@ -30,8 +30,8 @@
 (defn posh-get0 [attr]
   @(p/q get0-query conn attr))
 
-(defn set0! [attr val]
-  (p/transact! conn [{:db/id 0 attr val}]))
+(defn set0! [& args]
+  (p/transact! conn [(into {:db/id 0} (map vec (partition 2 args)))]))
 
 ;; sente
 (let [{:keys [chsk ch-recv send-fn state]}
@@ -73,9 +73,11 @@
                                       10000
                                       (fn [ret]
                                         (.log js/console (str "Returned: " ret))
-                                        (p/transact! conn
-                                                     (into [{:db/id 0 :screen/current :welcome}]
-                                                           ret))))
+                                        (if (> (count ret) 0)
+                                          (p/transact! conn
+                                                       (into [{:db/id 0 :screen/current :welcome}]
+                                                             ret))
+                                          (set0! :screen/current :add-lembrando))))
                           true))))))
 
 (defmethod -event-msg-handler :chsk/recv
@@ -145,14 +147,12 @@
       :on-request-change toggle-drawer}
      [rui/menu-item {:on-touch-tap
                      (fn [x]
-                        (println "on-touch-tap-1" x)
-                        (close-drawer))}
-      "Item 1"]
+                       (set0! :drawer/open false :screen/current :welcome))}
+      "Resumo"]
      [rui/menu-item {:on-touch-tap
                      (fn[x]
-                        (println "on-touch-tap-2" x)
-                        (close-drawer))}
-      "Item 2"]]))
+                       (set0! :drawer/open false :screen/current :add-lembrando))}
+      "Acrescenta pergunta"]]))
 
 (defn add-lembrando []
   [:div
@@ -178,9 +178,13 @@
 
 (defn welcome []
   (let [lembrandos (d/q '[:find [?l ...] :where [?l :lembrando/question]] @conn)]
-    (if (> (count lembrandos) 0)
-      [:div "Tes lembrandos!"]
-      [:div "Nom tes!"])))
+    [:div
+     [rui/app-bar {:title "Bem vindo!"
+                   :on-left-icon-button-touch-tap open-drawer}]
+     [drawer]
+     (if (> (count lembrandos) 0)
+       [:div "Tes lembrandos!"]
+       [:div "Nom tes!"])]))
 
 (def screens {:loading loading
               :welcome welcome
