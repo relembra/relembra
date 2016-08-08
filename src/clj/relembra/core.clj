@@ -19,8 +19,7 @@
 
 ;; sente setup
 
-(let [{:keys [ch-recv send-fn ajax-post-fn ajax-get-or-ws-handshake-fn
-              connected-uids]}
+(let [{:keys [ch-recv send-fn connected-uids ajax-post-fn ajax-get-or-ws-handshake-fn]}
       (sente/make-channel-socket! (if in-development
                                     http-kit-adapter/sente-web-server-adapter
                                     nginx-adapter/sente-web-server-adapter)
@@ -31,9 +30,12 @@
   (def chsk-send! send-fn)
   (def connected-uids connected-uids))
 
-(defmulti sente-handler :id)
+(defmulti -sente-handler :id)
 
-(defmethod sente-handler :default
+(defn sente-handler [event]
+  (-sente-handler event))
+
+(defmethod -sente-handler :default
   [{:as ev-msg :keys [event id ?data ring-req ?reply-fn send-fn]}]
   (let [session (:session ring-req)
         uid     (:uid     session)]
@@ -42,13 +44,18 @@
       (?reply-fn {:umatched-event-as-echoed-from-server event}))))
 
 ;; test handler
-(defmethod sente-handler :test/inc
+(defmethod -sente-handler :test/inc
   [{:as ev-msg :keys [event id ?data ring-req ?reply-fn send-fn]}]
+  (println "got request to inc" ?data)
   (?reply-fn (inc ?data)))
 
-(defmethod sente-handler :db/query
-  [{:as ev-msg :keys [event id [query & args] ring-req ?reply-fn send-fn]}]
-  (?reply-fn (apply d/q query (d/db @conn) args)))
+(defmethod -sente-handler :db/query
+  [{:as ev-msg [query & args] :?data :keys [event id ring-req ?reply-fn send-fn]}]
+  (println "query" query "args" args)
+  (let [ret (apply d/q query (d/db @conn) args)]
+    (println "responding" ret)
+    (Thread/sleep 1000)
+    (?reply-fn ret)))
 
 (defonce router_ (atom nil))
 (defn  stop-router! [] (when-let [stop-f @router_] (stop-f)))

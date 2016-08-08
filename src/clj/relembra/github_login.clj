@@ -64,7 +64,7 @@
             {:status 303
              :headers {"content-type" "text/html"
                        "location" original-path}
-             :session (assoc session :user (str user))
+             :session (assoc session :user (str user) :uid (str user))
              :body (html [:head [:title "Login successful"]]
                          [:body [:h1 "Login successful"]
                           [:p "Redirecting you to "
