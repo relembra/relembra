@@ -154,11 +154,15 @@
                        (set0! :drawer/open false :screen/current :add-lembrando))}
       "Acrescenta pergunta"]]))
 
-(defn add-lembrando []
+(defn screen [title contents]
   [:div
-   [rui/app-bar {:title "Acrescenta pergunta"
+   [rui/app-bar {:title title
                  :on-left-icon-button-touch-tap open-drawer}]
    [drawer]
+   contents])
+
+(defn add-lembrando []
+  [screen "Acrescenta pergunta"
    [:div.container
     [md-editor "Pergunta" :addq/question-text]
     [md-editor "Resposta" :addq/answer-text]
@@ -178,10 +182,7 @@
 
 (defn welcome []
   (let [lembrandos (d/q '[:find [?l ...] :where [?l :lembrando/question]] @conn)]
-    [:div
-     [rui/app-bar {:title "Bem vindo!"
-                   :on-left-icon-button-touch-tap open-drawer}]
-     [drawer]
+    [screen "Bem vindo!"
      (if (> (count lembrandos) 0)
        [:div "Tes lembrandos!"]
        [:div "Nom tes!"])]))
