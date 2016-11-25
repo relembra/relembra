@@ -56,29 +56,49 @@
   [{:as ev-msg :keys [event]}]
   (println "Unhandled klient event: %s" event))
 
-(def inited (atom false))
+(def lembrandos-query '[:find ((pull ?l [* {:lembrando/question [*]}]) ...)
+                        :in $ ?u
+                        :where
+                        [?u :user/lembrandos ?l]])
+
+(defn lembrando-query-results->txn [results user-id]
+  (apply concat
+         (for [entry results]
+           [(update-in (:lembrando/question entry) [:question/owner] :db/id)
+            (update-in entry [:lembrando/question] :db/id)
+            [:db/add user-id :user/lembrandos (:db/id entry)]])))
+
+(defmethod -event-msg-handler
+  :default ; Default/fallback case (no other matching handler)
+  [{:as ev-msg :keys [event]}]
+  (println "Unhandled klient event: %s" event))
+
+(defn replace-dbids [x]
+  (cond
+    (and (map? x) (= (ffirst (vec x)) :db/id))
+    (second (first (vec x)))
+    (map? x) (into {} (for [[k v] x]
+                        [k (replace-dbids v)]))
+    (vector? x) (mapv replace-dbids x)
+    :else x))
 
 (defmethod -event-msg-handler :chsk/state
   [{[_ {:keys [uid] :as new-state-map}] :?data}]
-  (if (= uid :taoensso.sente/nil-uid)
+  (if-not (:first-open? new-state-map)
     (.log js/console (str "Channel socket state change: " new-state-map))
-    (swap! inited (fn [old]
-                    (or old
-                        (do
-                          (chsk-send! [:db/query ['[:find (pull ?l [*])
-                                                    :in $ ?u
-                                                    :where
-                                                    [?u :user/lembrandos ?l]]
-                                                  uid]]
-                                      10000
-                                      (fn [ret]
-                                        (.log js/console (str "Returned: " ret))
-                                        (if (> (count ret) 0)
-                                          (p/transact! conn
-                                                       (into [{:db/id 0 :screen/current :welcome}]
-                                                             ret))
-                                          (set0! :screen/current :add-lembrando))))
-                          true))))))
+    (chsk-send! [:db/query [lembrandos-query uid]]
+                10000
+                (fn [ret]
+                  (.log js/console (str "Returned: " ret))
+                  (when (cb-success? ret)  ; XXX: handle failure!
+                    (if (= (count ret) 0)
+                      (set0! :user/id uid
+                             :screen/current :add-lembrando)
+                      (p/transact! conn
+                                   (into [{:db/id 0
+                                           :user/id uid
+                                           :screen/current :welcome}]
+                                         (lembrando-query-results->txn ret uid)))))))))
 
 (defmethod -event-msg-handler :chsk/recv
   [{:as ev-msg :keys [?data]}]
@@ -121,13 +141,12 @@
                  (let [new-value (.. e -target -value)]
                    (set0! value-k new-value)))}])
 
-(defn md-editor [title value-k]
-  (let [text (posh-get0 value-k)]
-    [:div.row.around-xs {:style {:margin-top "1em" :margin-bottom "1em"}}
-     [:div.col-xs-12.col-sm-5
-      [text-field title value-k text]]
-     [:div.col-xs-12.col-sm-6 {:style {:padding-top "0.5em" :font-family "Yrsa, serif" :font-size "120%"}}
-      [mathjax-box text]]]))
+(defn md-editor [title value-k text]
+  [:div.row.around-xs {:style {:margin-top "1em" :margin-bottom "1em"}}
+   [:div.col-xs-12.col-sm-5
+    [text-field title value-k text]]
+   [:div.col-xs-12.col-sm-6 {:style {:padding-top "0.5em" :font-family "Yrsa, serif" :font-size "120%"}}
+    [mathjax-box text]]])
 
 (defn toggle-drawer [b]
   (set0! :drawer/open b))
@@ -161,17 +180,49 @@
    [drawer]
    contents])
 
+
+(defn transact-fetch-results [res user-id]
+  (p/transact! conn (lembrando-query-results->txn (first res) user-id)))
+
+(defn remote-transact! [txn & [post-fetch success-callback error-callback]]
+  (chsk-send! [:db/transact {:txn txn
+                             :post-fetch post-fetch}]
+              10000
+              (when (and post-fetch
+                         (or success-callback
+                             error-callback))
+                (fn [resp]
+                  (if (cb-success? resp)
+                    (when success-callback (success-callback resp))
+                    ((or error-callback #(println "ERROR in remote-transact!:" (pr-str %)))
+                     resp))))))
+
 (defn add-lembrando []
-  [screen "Acrescenta pergunta"
-   [:div.container
-    [md-editor "Pergunta" :addq/question-text]
-    [md-editor "Resposta" :addq/answer-text]
-    [:div.row {:style {:padding "0px 10px"}}
-     [:div.col
-      [:div.box
-       [rui/flat-button {:label "Acrescentar"
-                         :icon (icons/content-add-circle)
-                         :on-touch-tap println}]]]]]])
+  (let [user-id (posh-get0 :user/id)
+        qtext (posh-get0 :addq/question-text)
+        atext (posh-get0 :addq/answer-text)]
+    [screen "Acrescenta pergunta"
+     [:div.container
+      [md-editor "Pergunta" :addq/question-text qtext]/
+      [md-editor "Resposta" :addq/answer-text atext]
+      [:div.row {:style {:padding "0px 10px"}}
+       [:div.col
+        [:div.box
+         [rui/flat-button
+          {:label "Acrescentar"
+           :icon (icons/content-add-circle)
+           :disabled (or (empty? qtext) (empty? atext))
+           :on-touch-tap (fn [_]
+                           (remote-transact!
+                            [{:db/id [:db/tempid -1]
+                              :question/body qtext
+                              :question/answer atext
+                              :question/owner user-id}
+                             {:db/id [:db/tempid -2]
+                              :lembrando/question [:db/tempid -1]}
+                             [:db/add user-id :user/lembrandos [:db/tempid -2]]]
+                            [[:query lembrandos-query [user-id]]]
+                            #(transact-fetch-results % user-id)))}]]]]]]))
 
 (defn loading []
   [:div.container

@@ -35,6 +35,19 @@
 (defn sente-handler [event]
   (-sente-handler event))
 
+(defn query [query args]
+  (apply d/q query (d/db @conn) args))
+
+(defn pull [query eid]
+  (d/pull (d/db @conn) query eid))
+
+(defn fetch [spec]
+  (into [] (for [[cmd & data] spec]
+             (apply (case cmd
+                      :query query
+                      :pull pull)
+                    data))))
+
 (defmethod -sente-handler :default
   [{:as ev-msg :keys [event id ?data ring-req ?reply-fn send-fn]}]
   (let [session (:session ring-req)
@@ -50,12 +63,32 @@
   (?reply-fn (inc ?data)))
 
 (defmethod -sente-handler :db/query
-  [{:as ev-msg [query & args] :?data :keys [event id ring-req ?reply-fn send-fn]}]
+  [{:as ev-msg [query-ex & args] :?data :keys [event id ring-req ?reply-fn send-fn]}]
   (println "query" query "args" args)
-  (let [ret (apply d/q query (d/db @conn) args)]
+  (let [ret (query query-ex args)]
     (println "responding" ret)
-    (Thread/sleep 1000)
+    (Thread/sleep 500)
     (?reply-fn ret)))
+
+(comment
+  (defmethod -sente-handler :db/fetch
+    [{:keys [?data ?reply-fn]}]
+    (?reply-fn (fetch ?data))))
+
+(defn replace-tempids [x]
+  (cond
+    (map? x) (into {} (for [[k v] x]
+                        [k (replace-tempids v)]))
+    (and (vector? x) (= :db/tempid (first x)))
+    (d/tempid :db.part/user (second x))
+    (vector? x) (mapv replace-tempids x)
+    :else x))
+
+(defmethod -sente-handler :db/transact
+  [{:keys [?data ?reply-fn]}]
+  @(d/transact @conn (replace-tempids (:txn ?data)))
+  (when-let [spec (:post-fetch ?data)]
+    (?reply-fn (fetch spec))))
 
 (defonce router_ (atom nil))
 (defn  stop-router! [] (when-let [stop-f @router_] (stop-f)))
@@ -64,7 +97,6 @@
   (reset! router_
           (sente/start-server-chsk-router!
            ch-chsk sente-handler)))
-
 
 (defn user-id [github-name]
   (let [tempid (d/tempid :db.part/user -1)
