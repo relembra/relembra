@@ -9,12 +9,25 @@
 (defn pull [query eid]
   (d/pull (d/db @conn) query eid))
 
-(defn transact [data]
-  @(d/transact @conn data))
+(defn transact [txn-data]
+  (try
+    (do
+      @(d/transact @conn txn-data)
+      :ops/transaction-ok)
+    (catch Exception e {:datomic/exception (.getMessage e)})))
+
 
 (defn fetch [spec]
   (into [] (for [[cmd & data] spec]
              (apply (case cmd
+                      :query query
+                      :pull pull)
+                    data))))
+
+(defn ops [spec]
+  (into [] (for [[cmd & data] spec]
+             (apply (case cmd
+                      :transact transact
                       :query query
                       :pull pull)
                     data))))

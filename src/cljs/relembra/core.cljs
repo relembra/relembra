@@ -182,20 +182,8 @@
 
 
 (defn transact-fetch-results [res user-id]
-  (p/transact! conn (lembrando-query-results->txn (first res) user-id)))
-
-(defn remote-transact! [txn & [post-fetch success-callback error-callback]]
-  (chsk-send! [:db/transact {:txn txn
-                             :post-fetch post-fetch}]
-              10000
-              (when (and post-fetch
-                         (or success-callback
-                             error-callback))
-                (fn [resp]
-                  (if (cb-success? resp)
-                    (when success-callback (success-callback resp))
-                    ((or error-callback #(println "ERROR in remote-transact!:" (pr-str %)))
-                     resp))))))
+  (.log js/console (str "successful result!" (pr-str res)))
+  (p/transact! conn (lembrando-query-results->txn res user-id)))
 
 (defn add-lembrando []
   (let [user-id (posh-get0 :user/id)
@@ -213,16 +201,20 @@
            :icon (icons/content-add-circle)
            :disabled (or (empty? qtext) (empty? atext))
            :on-touch-tap (fn [_]
-                           (remote-transact!
-                            [{:db/id [:db/tempid -1]
-                              :question/body qtext
-                              :question/answer atext
-                              :question/owner user-id}
-                             {:db/id [:db/tempid -2]
-                              :lembrando/question [:db/tempid -1]}
-                             [:db/add user-id :user/lembrandos [:db/tempid -2]]]
-                            [[:query lembrandos-query [user-id]]]
-                            #(transact-fetch-results % user-id)))}]]]]]]))
+                           (chsk-send! [:db/ops [[:transact
+                                                  [{:db/id [:?/tempid -1]
+                                                    :question/body qtext
+                                                    :question/answer atext
+                                                    :question/owner user-id}
+                                                   {:db/id [:?/tempid -2]
+                                                    :lembrando/question [:?/tempid -1]}
+                                                   [:db/add user-id :user/lembrandos [:?/tempid -2]]]]
+                                                 [:query lembrandos-query [user-id]]]]
+                                       10000
+                                       (fn [resp]
+                                         (if-not (cb-success? resp)
+                                           (.log js/console (str "Error in transaction/query!: " (pr-str resp)))
+                                           (transact-fetch-results (second resp) user-id)))))}]]]]]]))
 
 (defn loading []
   [:div.container

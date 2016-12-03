@@ -6,6 +6,7 @@
             [compojure.route :refer (files not-found resources)]
             [environ.core :refer (env)]
             [hiccup.core :refer (html)]
+            [datomic.api :as d]
             [relembra.datomic :as datomic]
             [relembra.github-login :as github-login]
             [ring.middleware.defaults :refer (wrap-defaults site-defaults)]
@@ -57,10 +58,26 @@
     (Thread/sleep 500)
     (?reply-fn ret)))
 
-(comment
-  (defmethod -sente-handler :db/fetch
-    [{:keys [?data ?reply-fn]}]
-    (?reply-fn (datomic/fetch ?data))))
+(defn resolve-placeholders [spec req]
+  (cond
+    (and (vector? spec)
+         (keyword? (first spec))
+         (= "?" (namespace (first spec))))
+    (case (first spec)
+      :?/ip (:remote-addr req)
+      :?/tempid (d/tempid :db.part/user (second spec))
+      :else (throw (RuntimeException.
+                    (str "unrecognized placeholder: "(pr-str name)))))
+    (vector? spec)
+    (mapv #(resolve-placeholders % req) spec)
+    (map? spec)
+    (into {} (for [[k v] spec]
+               [k (resolve-placeholders v req)]))
+    :else spec))
+
+(defmethod -sente-handler :db/ops
+  [{:keys [?data ring-req ?reply-fn]}]
+  (?reply-fn (datomic/ops (resolve-placeholders ?data ring-req))))
 
 (defmethod -sente-handler :db/transact
   [{:keys [?data ?reply-fn]}]
