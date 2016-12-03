@@ -4,9 +4,9 @@
   (:require [clojure.pprint :as pp]
             [compojure.core :refer (defroutes GET POST)]
             [compojure.route :refer (files not-found resources)]
-            [datomic.api :as d]
             [environ.core :refer (env)]
             [hiccup.core :refer (html)]
+            [relembra.datomic :as datomic]
             [relembra.github-login :as github-login]
             [ring.middleware.defaults :refer (wrap-defaults site-defaults)]
             [taoensso.sente :as sente]
@@ -15,7 +15,6 @@
 
 (def in-development (= (env :in-development) "indeed"))
 
-(def conn (delay (d/connect "datomic:free://localhost:4334/relembra")))
 
 ;; sente setup
 
@@ -35,18 +34,6 @@
 (defn sente-handler [event]
   (-sente-handler event))
 
-(defn query [query args]
-  (apply d/q query (d/db @conn) args))
-
-(defn pull [query eid]
-  (d/pull (d/db @conn) query eid))
-
-(defn fetch [spec]
-  (into [] (for [[cmd & data] spec]
-             (apply (case cmd
-                      :query query
-                      :pull pull)
-                    data))))
 
 (defmethod -sente-handler :default
   [{:as ev-msg :keys [event id ?data ring-req ?reply-fn send-fn]}]
@@ -64,8 +51,8 @@
 
 (defmethod -sente-handler :db/query
   [{:as ev-msg [query-ex & args] :?data :keys [event id ring-req ?reply-fn send-fn]}]
-  (println "query" query "args" args)
-  (let [ret (query query-ex args)]
+  (println "query" query-ex "args" args)
+  (let [ret (datomic/query query-ex args)]
     (println "responding" ret)
     (Thread/sleep 500)
     (?reply-fn ret)))
@@ -73,42 +60,29 @@
 (comment
   (defmethod -sente-handler :db/fetch
     [{:keys [?data ?reply-fn]}]
-    (?reply-fn (fetch ?data))))
-
-(defn replace-tempids [x]
-  (cond
-    (map? x) (into {} (for [[k v] x]
-                        [k (replace-tempids v)]))
-    (and (vector? x) (= :db/tempid (first x)))
-    (d/tempid :db.part/user (second x))
-    (vector? x) (mapv replace-tempids x)
-    :else x))
+    (?reply-fn (datomic/fetch ?data))))
 
 (defmethod -sente-handler :db/transact
   [{:keys [?data ?reply-fn]}]
-  @(d/transact @conn (replace-tempids (:txn ?data)))
+  (datomic/transact (datomic/replace-tempids (:txn ?data)))
   (when-let [spec (:post-fetch ?data)]
-    (?reply-fn (fetch spec))))
+    (?reply-fn (datomic/fetch spec))))
 
 (defonce router_ (atom nil))
-(defn  stop-router! [] (when-let [stop-f @router_] (stop-f)))
+(defn stop-router! [] (when-let [stop-f @router_] (stop-f)))
 (defn start-router! []
   (stop-router!)
   (reset! router_
           (sente/start-server-chsk-router!
            ch-chsk sente-handler)))
 
-(defn user-id [github-name]
-  (let [tempid (d/tempid :db.part/user -1)
-        report @(d/transact @conn [{:db/id tempid :user/github-name github-name}])]
-    (d/resolve-tempid (:db-after report) (:tempids report) tempid)))
 
 (defn root [req]
   (if-let [github-name (get-in req [:session :user/github-name])]
     (do
       {:status 200
        :headers {"content-type" "text/html"}
-       :session (assoc (:session  req) :uid (user-id github-name))
+       :session (assoc (:session  req) :uid (datomic/user-id github-name))
        :body (html [:head [:title "relembra (WIP)"]
                     [:link {:rel "stylesheet" :href "https://cdn.jsdelivr.net/font-hack/2.020/css/hack-extended.min.css"}]
                     [:link {:rel "stylesheet" :href "https://fonts.googleapis.com/css?family=Yrsa"}]

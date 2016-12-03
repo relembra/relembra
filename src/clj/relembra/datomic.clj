@@ -1,0 +1,34 @@
+(ns relembra.datomic
+  (:require [datomic.api :as d]))
+
+(def conn (delay (d/connect "datomic:free://localhost:4334/relembra")))
+
+(defn query [query args]
+  (apply d/q query (d/db @conn) args))
+
+(defn pull [query eid]
+  (d/pull (d/db @conn) query eid))
+
+(defn transact [data]
+  @(d/transact @conn data))
+
+(defn fetch [spec]
+  (into [] (for [[cmd & data] spec]
+             (apply (case cmd
+                      :query query
+                      :pull pull)
+                    data))))
+
+(defn replace-tempids [x]
+  (cond
+    (map? x) (into {} (for [[k v] x]
+                        [k (replace-tempids v)]))
+    (and (vector? x) (= :db/tempid (first x)))
+    (d/tempid :db.part/user (second x))
+    (vector? x) (mapv replace-tempids x)
+    :else x))
+
+(defn user-id [github-name]
+  (let [tempid (d/tempid :db.part/user -1)
+        report @(d/transact @conn [{:db/id tempid :user/github-name github-name}])]
+    (d/resolve-tempid (:db-after report) (:tempids report) tempid)))
