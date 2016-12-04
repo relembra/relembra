@@ -6,6 +6,8 @@
             [cljs-react-material-ui.reagent :as rui]
             [cljs-react-material-ui.icons :as icons]
             [cljs.core.async :as async :refer (<! >! put! chan)]
+            [cljs-time.core :as time]
+            [cljs-time.coerce :as time-coerce]
             [datascript.core :as d]
             [markdown.core :refer (md->html)]
             [posh.reagent :as p]
@@ -138,7 +140,6 @@
    [drawer]
    contents])
 
-
 (defn transact-fetch-results [res user-id]
   (.log js/console (str "successful result!" (pr-str res)))
   (p/transact! conn (lembrando-query-results->txn res user-id)))
@@ -181,11 +182,21 @@
    [:div.row.center-xs
     [rui/circular-progress]]])
 
+(defn past? [t]
+  (time/after? (time/now)
+               (time-coerce/from-date t)))
+
 (defn welcome []
-  (let [lembrandos (d/q '[:find [?l ...] :where [?l :lembrando/question]] @conn)]
+  ;; Using datascript query because pull in query is not supported in Posh
+  (let [lembrandos (d/q '[:find [(pull ?l [*]) ...] :where [?l :lembrando/question]] @conn)
+        due (filter (fn [l]
+                      (let [dd (:lembrando/due-date l)]
+                        (or (not dd)
+                            (past? dd))))
+                    lembrandos)]
     [screen "Bem vindo!"
      (if (> (count lembrandos) 0)
-       [:div (str "Tes " (count lembrandos)" lembrandos!")]
+       [:div (str "Tes " (count lembrandos) " lembrandos, " (count due) " due!")]
        [:div "Nom tes!"])]))
 
 (def screens {:loading loading

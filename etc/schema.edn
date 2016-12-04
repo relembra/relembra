@@ -74,6 +74,14 @@
   :db.install/_attribute :db.part/db}
 
  {:db/id #db/id[:db.part/db]
+  :db/ident :lembrando/due-date
+  :db/valueType :db.type/instant
+  :db/cardinality :db.cardinality/one
+  :db/index true
+  :db/doc "Due date for next repetition of this lembrando (with day granularity, time must be 05:00)"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
   :db/ident :lembrando/repetition-number
   :db/valueType :db.type/long
   :db/cardinality :db.cardinality/one

@@ -8,6 +8,9 @@
                  [crisptrutski/boot-cljs-test "0.2.2-SNAPSHOT" :scope "test"]
                  [boot-environ "1.0.3"]
                  [cljs-react-material-ui "0.2.20"]
+                 ;; using the alpha because that's the version of the API docs
+                 ;; in their website.
+                 [com.andrewmcveigh/cljs-time "0.5.0-alpha2"]
                  [org.clojure/clojure "1.8.0"]
                  [org.clojure/clojurescript "1.9.36"]
                  [compojure "1.4.0"]
