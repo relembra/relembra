@@ -1,14 +1,11 @@
 (ns relembra.sente
-  (:require [environ.core :refer (env)]
+  (:require [relembra.util :as util]
             [taoensso.sente :as sente]
             [taoensso.sente.server-adapters.http-kit :as http-kit-adapter]
             [taoensso.sente.server-adapters.nginx-clojure :as nginx-adapter]))
 
-;; DRY XXX: factor out to common ns.
-(def in-development (= (env :in-development) "indeed"))
-
 (let [{:keys [ch-recv send-fn connected-uids ajax-post-fn ajax-get-or-ws-handshake-fn]}
-      (sente/make-channel-socket! (if in-development
+      (sente/make-channel-socket! (if util/in-development?
                                     http-kit-adapter/sente-web-server-adapter
                                     nginx-adapter/sente-web-server-adapter)
                                   {})]

@@ -4,16 +4,13 @@
   (:require [clojure.pprint :as pp]
             [compojure.core :refer (defroutes GET POST)]
             [compojure.route :refer (files not-found resources)]
-            [environ.core :refer (env)]
             [hiccup.core :refer (html)]
             [datomic.api :as d]
             [relembra.datomic :as datomic]
             [relembra.sente :as sente]
+            [relembra.util :as util]
             [relembra.github-login :as github-login]
             [ring.middleware.defaults :refer (wrap-defaults site-defaults)]))
-
-;; DRY XXX: factor out
-(def in-development (= (env :in-development) "indeed"))
 
 (defn resolve-placeholders [spec req]
   (cond
@@ -66,14 +63,14 @@
   (GET  "/chsk" req (sente/ring-ajax-get-or-ws-handshake req))
   (POST "/chsk" req (sente/ring-ajax-post req))
 
-  (resources (if in-development "/public" "/"))
+  (resources (if util/in-development? "/public" "/"))
   (files "/")
   (not-found "Page not found."))
 
 (def app
   (wrap-defaults handler site-defaults))
 
-(if in-development
+(if util/in-development?
   (sente/start-router!))
 
 ;; This is set in nginx.conf as jvm_init_handler_name, so it will get called on
