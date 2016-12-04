@@ -86,19 +86,20 @@
   [{[_ {:keys [uid] :as new-state-map}] :?data}]
   (if-not (:first-open? new-state-map)
     (.log js/console (str "Channel socket state change: " new-state-map))
-    (chsk-send! [:db/query [lembrandos-query uid]]
+    (chsk-send! [:db/ops [[:query lembrandos-query [uid]]]]
                 10000
                 (fn [ret]
                   (.log js/console (str "Returned: " ret))
                   (when (cb-success? ret)  ; XXX: handle failure!
-                    (if (= (count ret) 0)
-                      (set0! :user/id uid
-                             :screen/current :add-lembrando)
-                      (p/transact! conn
-                                   (into [{:db/id 0
-                                           :user/id uid
-                                           :screen/current :welcome}]
-                                         (lembrando-query-results->txn ret uid)))))))))
+                    (let [lembrandos (first ret)]
+                      (if (= (count lembrandos) 0)
+                        (set0! :user/id uid
+                               :screen/current :add-lembrando)
+                        (p/transact! conn
+                                     (into [{:db/id 0
+                                             :user/id uid
+                                             :screen/current :welcome}]
+                                           (lembrando-query-results->txn lembrandos uid))))))))))
 
 (defmethod -event-msg-handler :chsk/recv
   [{:as ev-msg :keys [?data]}]
