@@ -35,7 +35,6 @@
 (defn sente-handler [event]
   (-sente-handler event))
 
-
 (defmethod -sente-handler :default
   [{:as ev-msg :keys [event id ?data ring-req ?reply-fn send-fn]}]
   (let [session (:session ring-req)
@@ -43,20 +42,6 @@
     (println "Unhandled event:" event)
     (when ?reply-fn
       (?reply-fn {:umatched-event-as-echoed-from-server event}))))
-
-;; test handler
-(defmethod -sente-handler :test/inc
-  [{:as ev-msg :keys [event id ?data ring-req ?reply-fn send-fn]}]
-  (println "got request to inc" ?data)
-  (?reply-fn (inc ?data)))
-
-(defmethod -sente-handler :db/query
-  [{:as ev-msg [query-ex & args] :?data :keys [event id ring-req ?reply-fn send-fn]}]
-  (println "query" query-ex "args" args)
-  (let [ret (datomic/query query-ex args)]
-    (println "responding" ret)
-    (Thread/sleep 500)
-    (?reply-fn ret)))
 
 (defn resolve-placeholders [spec req]
   (cond
@@ -79,12 +64,6 @@
   [{:keys [?data ring-req ?reply-fn]}]
   (?reply-fn (datomic/ops (resolve-placeholders ?data ring-req))))
 
-(defmethod -sente-handler :db/transact
-  [{:keys [?data ?reply-fn]}]
-  (datomic/transact (datomic/replace-tempids (:txn ?data)))
-  (when-let [spec (:post-fetch ?data)]
-    (?reply-fn (datomic/fetch spec))))
-
 (defonce router_ (atom nil))
 (defn stop-router! [] (when-let [stop-f @router_] (stop-f)))
 (defn start-router! []
@@ -92,7 +71,6 @@
   (reset! router_
           (sente/start-server-chsk-router!
            ch-chsk sente-handler)))
-
 
 (defn root [req]
   (if-let [github-name (get-in req [:session :user/github-name])]

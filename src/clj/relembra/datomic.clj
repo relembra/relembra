@@ -16,14 +16,6 @@
       :ops/transaction-ok)
     (catch Exception e {:datomic/exception (.getMessage e)})))
 
-
-(defn fetch [spec]
-  (into [] (for [[cmd & data] spec]
-             (apply (case cmd
-                      :query query
-                      :pull pull)
-                    data))))
-
 (defn ops [spec]
   (into [] (for [[cmd & data] spec]
              (apply (case cmd
