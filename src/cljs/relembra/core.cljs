@@ -10,7 +10,8 @@
             [markdown.core :refer (md->html)]
             [posh.reagent :as p]
             [reagent.core :as r]
-            [taoensso.sente  :as sente :refer (cb-success?)]))
+            [relembra.sente :as sente]
+            [taoensso.sente :refer (cb-success?)]))
 
 (defonce conn (let [conn (d/create-conn)]
                 (d/transact! conn [{:db/id 0
@@ -33,28 +34,6 @@
 (defn set0! [& args]
   (p/transact! conn [(into {:db/id 0} (map vec (partition 2 args)))]))
 
-;; sente
-(let [{:keys [chsk ch-recv send-fn state]}
-      (sente/make-channel-socket! "/chsk" {:type :ws})]
-  (def chsk chsk)
-  (def ch-chsk ch-recv)
-  (def chsk-send! send-fn)
-  (def chsk-state state))
-
-(defmulti -event-msg-handler
-  "Multimethod to handle Sente `event-msg`s"
-  :id ; Dispatch on event-id
-  )
-
-(defn event-msg-handler
-  "Wraps `-event-msg-handler` with logging, error catching, etc."
-  [{:as ev-msg :keys [id ?data event]}]
-  (-event-msg-handler ev-msg))
-
-(defmethod -event-msg-handler
-  :default ; Default/fallback case (no other matching handler)
-  [{:as ev-msg :keys [event]}]
-  (println "Unhandled klient event: %s" event))
 
 (def lembrandos-query '[:find ((pull ?l [* {:lembrando/question [*]}]) ...)
                         :in $ ?u
@@ -68,11 +47,6 @@
             (update-in entry [:lembrando/question] :db/id)
             [:db/add user-id :user/lembrandos (:db/id entry)]])))
 
-(defmethod -event-msg-handler
-  :default ; Default/fallback case (no other matching handler)
-  [{:as ev-msg :keys [event]}]
-  (println "Unhandled klient event: %s" event))
-
 (defn replace-dbids [x]
   (cond
     (and (map? x) (= (ffirst (vec x)) :db/id))
@@ -82,42 +56,25 @@
     (vector? x) (mapv replace-dbids x)
     :else x))
 
-(defmethod -event-msg-handler :chsk/state
+(defmethod sente/server-msg-handler :chsk/state
   [{[_ {:keys [uid] :as new-state-map}] :?data}]
   (if-not (:first-open? new-state-map)
     (.log js/console (str "Channel socket state change: " new-state-map))
-    (chsk-send! [:db/ops [[:query lembrandos-query [uid]]]]
-                10000
-                (fn [ret]
-                  (.log js/console (str "Returned: " ret))
-                  (when (cb-success? ret)  ; XXX: handle failure!
-                    (let [lembrandos (first ret)]
-                      (if (= (count lembrandos) 0)
-                        (set0! :user/id uid
-                               :screen/current :add-lembrando)
-                        (p/transact! conn
-                                     (into [{:db/id 0
-                                             :user/id uid
-                                             :screen/current :welcome}]
-                                           (lembrando-query-results->txn lembrandos uid))))))))))
+    (sente/send! [:db/ops [[:query lembrandos-query [uid]]]]
+                 10000
+                 (fn [ret]
+                   (.log js/console (str "Returned: " ret))
+                   (when (cb-success? ret)  ; XXX: handle failure!
+                     (let [lembrandos (first ret)]
+                       (if (= (count lembrandos) 0)
+                         (set0! :user/id uid
+                                :screen/current :add-lembrando)
+                         (p/transact! conn
+                                      (into [{:db/id 0
+                                              :user/id uid
+                                              :screen/current :welcome}]
+                                            (lembrando-query-results->txn lembrandos uid))))))))))
 
-(defmethod -event-msg-handler :chsk/recv
-  [{:as ev-msg :keys [?data]}]
-  (println "Push event from server: %s" ?data))
-
-(defmethod -event-msg-handler :chsk/handshake
-  [{:as ev-msg :keys [?data]}]
-  (let [[?uid ?csrf-token ?handshake-data] ?data]
-    (println "Handshake: %s" ?data)))
-
-
-(defonce router_ (atom nil))
-(defn  stop-router! [] (when-let [stop-f @router_] (stop-f)))
-(defn start-router! []
-  (stop-router!)
-  (reset! router_
-          (sente/start-client-chsk-router!
-           ch-chsk event-msg-handler)))
 
 (defn typeset [c]
   (js/MathJax.Hub.Queue (array "Typeset" js/MathJax.Hub (r/dom-node c))))
@@ -202,20 +159,20 @@
            :icon (icons/content-add-circle)
            :disabled (or (empty? qtext) (empty? atext))
            :on-touch-tap (fn [_]
-                           (chsk-send! [:db/ops [[:transact
-                                                  [{:db/id [:?/tempid -1]
-                                                    :question/body qtext
-                                                    :question/answer atext
-                                                    :question/owner user-id}
-                                                   {:db/id [:?/tempid -2]
-                                                    :lembrando/question [:?/tempid -1]}
-                                                   [:db/add user-id :user/lembrandos [:?/tempid -2]]]]
-                                                 [:query lembrandos-query [user-id]]]]
-                                       10000
-                                       (fn [resp]
-                                         (if-not (cb-success? resp)
-                                           (.log js/console (str "Error in transaction/query!: " (pr-str resp)))
-                                           (transact-fetch-results (second resp) user-id)))))}]]]]]]))
+                           (sente/send! [:db/ops [[:transact
+                                                   [{:db/id [:?/tempid -1]
+                                                     :question/body qtext
+                                                     :question/answer atext
+                                                     :question/owner user-id}
+                                                    {:db/id [:?/tempid -2]
+                                                     :lembrando/question [:?/tempid -1]}
+                                                    [:db/add user-id :user/lembrandos [:?/tempid -2]]]]
+                                                  [:query lembrandos-query [user-id]]]]
+                                        10000
+                                        (fn [resp]
+                                          (if-not (cb-success? resp)
+                                            (.log js/console (str "Error in transaction/query!: " (pr-str resp)))
+                                            (transact-fetch-results (second resp) user-id)))))}]]]]]]))
 
 (defn loading []
   [:div.container
@@ -239,8 +196,6 @@
   [rui/mui-theme-provider
    {:mui-theme (ui/get-mui-theme {:palette {:text-color (ui/color :teal600)}})}
    [(screens (posh-get0 :screen/current))]])
-
-(defonce _start-once (start-router!))
 
 (defn ^:export main []
   (r/render [app]
