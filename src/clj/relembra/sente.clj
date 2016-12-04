@@ -25,10 +25,15 @@
     (when ?reply-fn
       (?reply-fn {:umatched-event-as-echoed-from-server event}))))
 
+(defn wrapped-client-msg-handler [{:keys [uid] :as evt}]
+  (if uid
+    (client-msg-handler evt)
+    (println "WARNING: event without uid!:" (pr-str evt))))
+
 (defonce router_ (atom nil))
 (defn stop-router! [] (when-let [stop-f @router_] (stop-f)))
 (defn start-router! []
   (stop-router!)
   (reset! router_
           (sente/start-server-chsk-router!
-           ch-chsk client-msg-handler)))
+           ch-chsk wrapped-client-msg-handler)))

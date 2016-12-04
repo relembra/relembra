@@ -12,6 +12,12 @@
             [relembra.github-login :as github-login]
             [ring.middleware.defaults :refer (wrap-defaults site-defaults)]))
 
+(defn requiring-login [f]
+  (fn [req & etc]
+    (if (get-in req [:session :user/github-name])
+      (apply f req etc)
+      (github-login/login req))))
+
 (defn resolve-placeholders [spec req]
   (cond
     (and (vector? spec)
@@ -30,29 +36,34 @@
     :else spec))
 
 (defmethod sente/client-msg-handler :db/ops
-  [{:keys [?data ring-req ?reply-fn]}]
+  [{:keys [?data ring-req uid ?reply-fn]}]
   (?reply-fn (datomic/ops (resolve-placeholders ?data ring-req))))
 
-(defn root [req]
-  (if-let [github-name (get-in req [:session :user/github-name])]
-    (do
-      {:status 200
-       :headers {"content-type" "text/html"}
-       :session (assoc (:session  req) :uid (datomic/user-id github-name))
-       :body (html [:head [:title "relembra (WIP)"]
-                    [:link {:rel "stylesheet" :href "https://cdn.jsdelivr.net/font-hack/2.020/css/hack-extended.min.css"}]
-                    [:link {:rel "stylesheet" :href "https://fonts.googleapis.com/css?family=Yrsa"}]
-                    [:link {:rel "stylesheet" :href "https://fonts.googleapis.com/css?family=Roboto:400,300,500&amp;subset=latin" :media "all"}]
-                    [:link {:rel "stylesheet" :href "https://cdn.jsdelivr.net/flexboxgrid/6.3.0/flexboxgrid.min.css" :type "text/css"}]
-                    [:script {:type "text/x-mathjax-config"}
-                     "MathJax.Hub.Config({asciimath2jax: {delimiters: [['¡','¡']]}});"]
-                    [:script {:type "text/javascript" :async true
-                              :src "https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=AM_CHTML"}]]
-                   [:body
-                    [:div#app_container
-                     [:script {:type "text/javascript" :src "js/main.js"}]
-                     [:script {:type "text/javascript"} "relembra.core.main();"]]])})
-    (github-login/login req)))
+(def root
+  (requiring-login
+   (fn [req]
+     {:status 200
+      :headers {"content-type" "text/html"}
+      :session (assoc (:session  req) :uid (-> req :session :user/github-name datomic/user-id))
+      :body (html [:head [:title "relembra (WIP)"]
+                   [:link {:rel "stylesheet" :href "https://cdn.jsdelivr.net/font-hack/2.020/css/hack-extended.min.css"}]
+                   [:link {:rel "stylesheet" :href "https://fonts.googleapis.com/css?family=Yrsa"}]
+                   [:link {:rel "stylesheet" :href "https://fonts.googleapis.com/css?family=Roboto:400,300,500&amp;subset=latin" :media "all"}]
+                   [:link {:rel "stylesheet" :href "https://cdn.jsdelivr.net/flexboxgrid/6.3.0/flexboxgrid.min.css" :type "text/css"}]
+                   [:script {:type "text/x-mathjax-config"}
+                    "MathJax.Hub.Config({asciimath2jax: {delimiters: [['¡','¡']]}});"]
+                   [:script {:type "text/javascript" :async true
+                             :src "https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=AM_CHTML"}]]
+                  [:body
+                   [:div#app_container
+                    [:script {:type "text/javascript" :src "js/main.js"}]
+                    [:script {:type "text/javascript"} "relembra.core.main();"]]])})))
+
+(def chsk-get
+  (requiring-login sente/ring-ajax-get-or-ws-handshake))
+
+(def chsk-post
+  (requiring-login sente/ring-ajax-post))
 
 (defroutes handler
 
@@ -60,8 +71,8 @@
   (GET "/github-auth-cb" [code state :as req]
     (github-login/github-auth-cb code state (get req :session {})))
   ;; sente
-  (GET  "/chsk" req (sente/ring-ajax-get-or-ws-handshake req))
-  (POST "/chsk" req (sente/ring-ajax-post req))
+  (GET  "/chsk" req (chsk-get req))
+  (POST "/chsk" req (chsk-post req))
 
   (resources (if util/in-development? "/public" "/"))
   (files "/")
