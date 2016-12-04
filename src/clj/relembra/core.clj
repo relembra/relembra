@@ -8,40 +8,12 @@
             [hiccup.core :refer (html)]
             [datomic.api :as d]
             [relembra.datomic :as datomic]
+            [relembra.sente :as sente]
             [relembra.github-login :as github-login]
-            [ring.middleware.defaults :refer (wrap-defaults site-defaults)]
-            [taoensso.sente :as sente]
-            [taoensso.sente.server-adapters.http-kit :as http-kit-adapter]
-            [taoensso.sente.server-adapters.nginx-clojure :as nginx-adapter]))
+            [ring.middleware.defaults :refer (wrap-defaults site-defaults)]))
 
+;; DRY XXX: factor out
 (def in-development (= (env :in-development) "indeed"))
-
-
-;; sente setup
-
-(let [{:keys [ch-recv send-fn connected-uids ajax-post-fn ajax-get-or-ws-handshake-fn]}
-      (sente/make-channel-socket! (if in-development
-                                    http-kit-adapter/sente-web-server-adapter
-                                    nginx-adapter/sente-web-server-adapter)
-                                  {})]
-  (def ring-ajax-post ajax-post-fn)
-  (def ring-ajax-get-or-ws-handshake ajax-get-or-ws-handshake-fn)
-  (def ch-chsk ch-recv)
-  (def chsk-send! send-fn)
-  (def connected-uids connected-uids))
-
-(defmulti -sente-handler :id)
-
-(defn sente-handler [event]
-  (-sente-handler event))
-
-(defmethod -sente-handler :default
-  [{:as ev-msg :keys [event id ?data ring-req ?reply-fn send-fn]}]
-  (let [session (:session ring-req)
-        uid     (:uid     session)]
-    (println "Unhandled event:" event)
-    (when ?reply-fn
-      (?reply-fn {:umatched-event-as-echoed-from-server event}))))
 
 (defn resolve-placeholders [spec req]
   (cond
@@ -60,17 +32,9 @@
                [k (resolve-placeholders v req)]))
     :else spec))
 
-(defmethod -sente-handler :db/ops
+(defmethod sente/client-msg-handler :db/ops
   [{:keys [?data ring-req ?reply-fn]}]
   (?reply-fn (datomic/ops (resolve-placeholders ?data ring-req))))
-
-(defonce router_ (atom nil))
-(defn stop-router! [] (when-let [stop-f @router_] (stop-f)))
-(defn start-router! []
-  (stop-router!)
-  (reset! router_
-          (sente/start-server-chsk-router!
-           ch-chsk sente-handler)))
 
 (defn root [req]
   (if-let [github-name (get-in req [:session :user/github-name])]
@@ -99,8 +63,8 @@
   (GET "/github-auth-cb" [code state :as req]
     (github-login/github-auth-cb code state (get req :session {})))
   ;; sente
-  (GET  "/chsk" req (ring-ajax-get-or-ws-handshake req))
-  (POST "/chsk" req (ring-ajax-post req))
+  (GET  "/chsk" req (sente/ring-ajax-get-or-ws-handshake req))
+  (POST "/chsk" req (sente/ring-ajax-post req))
 
   (resources (if in-development "/public" "/"))
   (files "/")
@@ -110,9 +74,9 @@
   (wrap-defaults handler site-defaults))
 
 (if in-development
-  (start-router!))
+  (sente/start-router!))
 
 ;; This is set in nginx.conf as jvm_init_handler_name, so it will get called on
 ;; startup.
 (defn nginx-init! [_]
-  (start-router!))
+  (sente/start-router!))
