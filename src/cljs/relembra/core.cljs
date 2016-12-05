@@ -153,7 +153,7 @@
         atext (posh-get0 :addq/answer-text)]
     [screen "Acrescenta pergunta"
      [:div.container
-      [md-editor "Pergunta" :addq/question-text qtext]/
+      [md-editor "Pergunta" :addq/question-text qtext]
       [md-editor "Resposta" :addq/answer-text atext]
       [:div.row {:style {:padding "0px 10px"}}
        [:div.col
