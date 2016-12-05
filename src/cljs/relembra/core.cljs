@@ -147,6 +147,17 @@
   (.log js/console (str "successful result!" (pr-str res)))
   (p/transact! conn (lembrando-query-results->txn res user-id)))
 
+(defn new-lembrando-txn [user-id qtext atext]
+  [{:db/id [:?/tempid -1]
+    :question/body qtext
+    :question/answer atext
+    :question/owner user-id}
+   {:db/id [:?/tempid -2]
+    :lembrando/due-date (time-coerce/to-date (time/epoch))
+    :lembrando/question [:?/tempid -1]
+    :lembrando/needs-repeat? false}
+   [:db/add user-id :user/lembrandos [:?/tempid -2]]])
+
 (defn add-lembrando []
   (let [user-id (posh-get0 :user/id)
         qtext (posh-get0 :addq/question-text)
@@ -163,14 +174,7 @@
            :icon (icons/content-add-circle)
            :disabled (or (empty? qtext) (empty? atext))
            :on-touch-tap (fn [_]
-                           (sente/send! [:db/ops [[:transact
-                                                   [{:db/id [:?/tempid -1]
-                                                     :question/body qtext
-                                                     :question/answer atext
-                                                     :question/owner user-id}
-                                                    {:db/id [:?/tempid -2]
-                                                     :lembrando/question [:?/tempid -1]}
-                                                    [:db/add user-id :user/lembrandos [:?/tempid -2]]]]
+                           (sente/send! [:db/ops [[:transact (new-lembrando-txn user-id qtext atext)]
                                                   [:query lembrandos-query [user-id]]]]
                                         10000
                                         (fn [resp]
