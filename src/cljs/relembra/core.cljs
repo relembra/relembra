@@ -13,6 +13,7 @@
             [posh.reagent :as p]
             [reagent.core :as r]
             [relembra.sente :as sente]
+            [spaced-repetition.sm5 :as sm5]
             [taoensso.sente :refer (cb-success?)]))
 
 (defonce conn (let [conn (d/create-conn)]
@@ -193,21 +194,98 @@
   (time/after? (time/now)
                (time-coerce/from-date t)))
 
-(defn welcome []
+(defn lembrandos []
   ;; Using datascript query because pull in query is not supported in Posh
-  (let [lembrandos (d/q '[:find [(pull ?l [*]) ...] :where [?l :lembrando/question]] @conn)
+  ;; XXX: move to a combo of q and pulls, so we're reactive.
+  (let [all (d/q '[:find [(pull ?l [*]) ...] :where [?l :lembrando/question]] @conn)
         due (filter (fn [l]
-                      (let [dd (:lembrando/due-date l)]
-                        (or (not dd)
-                            (past? dd))))
-                    lembrandos)]
+                      (or (:lembrando/needs-repeat? l)
+                          (past? (:lembrando/due-date l))))
+                    all)]
+    [all due]))
+
+(defn welcome []
+  (let [[all due] (lembrandos)]
     [screen "Bem vindo!"
-     (if (> (count lembrandos) 0)
-       [:div (str "Tes " (count lembrandos) " lembrandos, " (count due) " due!")]
-       [:div "Nom tes!"])]))
+     [:div
+      [rui/paper
+       [:div {:style {:padding 20}}
+        (if (> (count all) 0)
+          (str "Tes " (count all) " perguntas em total, " (count due) " prontas para repassar.")
+          "Nom tes!")]
+       [:div
+        (when (> (count due) 0)
+          [rui/flat-button
+           {:label "Repassar"
+            :icon (icons/social-school)
+            :on-touch-tap (fn [_]
+                            (set0! :screen/current :review))}])]]]]))
+
+(defn captioned-markdown [caption text]
+  [:div {:style {:padding "1em"}}
+   [:div {:style {:font-size "80%" :color (ui/color :teal400)}}
+    caption]
+   [:div {:style {:font-family "Yrsa, serif" :font-size "120%" :color (ui/color :teal900)}}
+    [mathjax-box text]]])
+
+(defn rate-recall [lembrando level]
+  (js/alert (str "Rateastes " level)))
+
+(defn review []
+  (let [[all due] (lembrandos)]
+    [screen "Repasso"
+     (if (empty? due)
+       [rui/paper
+        [:div {:style {:padding 20}} "Nada a repassar!"]]
+       (if-let [lembrando (posh-get0 :review/lembrando)]
+         (let [question (:lembrando/question
+                         (d/pull (d/db conn)
+                                 '[{:lembrando/question [*]}]
+                                 lembrando))
+               show-answer? (posh-get0 :review/show-answer)]
+           [rui/paper
+            (captioned-markdown "Pergunta" (:question/body question))
+            (if show-answer?
+              [:div
+               (captioned-markdown "Resposta" (:question/answer question))
+               [:div
+                [ui/flat-button
+                 {:label "NPI"
+                  :icon (icons/social-sentiment-very-dissatisfied)
+                  :on-touch-tap #(rate-recall lembrando 1)}]
+                [rui/flat-button
+                 {:label "Algo sona-me"
+                  :icon (icons/social-sentiment-dissatisfied)
+                  :on-touch-tap #(rate-recall lembrando 2)}]
+                [rui/flat-button
+                 {:label "Assi-assi"
+                  :icon (icons/social-sentiment-neutral)
+                  :on-touch-tap #(rate-recall lembrando 3)}]
+                [rui/flat-button
+                 {:label "Custou!"
+                  :icon (icons/social-sentiment-very-satisfied)
+                  :on-touch-tap #(rate-recall lembrando 4)}]
+                [rui/flat-button
+                 {:label "Bah, chupado"
+                  :icon (icons/social-sentiment-satisfied)
+                  :on-touch-tap #(rate-recall lembrando 5)}]]]
+              [:div
+               [rui/flat-button
+                {:label "Mostrar resposta"
+                 :icon (icons/action-visibility)
+                 :on-touch-tap (fn [_]
+                                 (set0! :review/show-answer true))}]])])
+         (let [{need true need-not false}
+               (group-by :lembrando/needs-repeat? due)
+               lembrando (rand-nth (if (empty? need-not)
+                                     need
+                                     need-not))]
+           (set0! :review/lembrando (:db/id lembrando))
+           [:span])))]))
 
 (def screens {:loading loading
               :welcome welcome
+              :review review
               :add-lembrando add-lembrando})
 
 (defn app []

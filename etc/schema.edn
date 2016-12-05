@@ -50,7 +50,8 @@
   :db/ident :question/owner
   :db/valueType :db.type/ref
   :db/cardinality :db.cardinality/one
-  :db/doc "The user which created this question, and the only one who can edit it"
+  :db/index true
+  :db/doc "The only one who can edit it this question (either the author or whoever made this copy)"
   :db.install/_attribute :db.part/db}
 
  ;; optimal factor mapping entry
@@ -62,6 +63,7 @@
   :db/valueType :db.type/float
   :db/cardinality :db.cardinality/one
   :db/doc "The optimal factor value"
+  :db/index true
   :db.install/_attribute :db.part/db}
 
  ;; lembrando
@@ -70,6 +72,7 @@
   :db/ident :lembrando/question
   :db/valueType :db.type/ref
   :db/cardinality :db.cardinality/one
+  :db/index true
   :db/doc "The question that is being remembered"
   :db.install/_attribute :db.part/db}
 
@@ -85,6 +88,7 @@
   :db/ident :lembrando/repetition-number
   :db/valueType :db.type/long
   :db/cardinality :db.cardinality/one
+  :db/index true
   :db/doc "Repetition number for the purpose of computing intervals"
   :db.install/_attribute :db.part/db}
 
@@ -92,6 +96,7 @@
   :db/ident :lembrando/easiness
   :db/valueType :db.type/float
   :db/cardinality :db.cardinality/one
+  :db/index true
   :db/doc "Easiness factor"
   :db.install/_attribute :db.part/db}
 
@@ -99,6 +104,7 @@
   :db/ident :lembrando/last-interval
   :db/valueType :db.type/long
   :db/cardinality :db.cardinality/one
+  :db/index true
   :db/doc "Last interval for the purpose of adjusting optimal factors"
   :db.install/_attribute :db.part/db}
 
@@ -106,6 +112,7 @@
   :db/ident :lembrando/used-of
   :db/valueType :db.type/long
   :db/cardinality :db.cardinality/one
+  :db/index true
   :db/doc "Optimal factor used to compute last interval, for the purpose of adjusting optimal factors"
   :db.install/_attribute :db.part/db}
 
@@ -113,6 +120,7 @@
   :db/ident :lembrando/needs-repeat?
   :db/valueType :db.type/boolean
   :db/cardinality :db.cardinality/one
+  :db/index true
   :db/doc "Whether this lembrando has been forgotten in a recent session, and thus needs repeating until it gets a quality of 4 or more"
   :db.install/_attribute :db.part/db}
 
