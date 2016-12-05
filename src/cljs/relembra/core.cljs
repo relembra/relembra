@@ -133,12 +133,15 @@
                        (set0! :drawer/open false :screen/current :add-lembrando))}
       "Acrescenta pergunta"]]))
 
-(defn screen [title contents]
-  [:div
-   [rui/app-bar {:title title
-                 :on-left-icon-button-touch-tap open-drawer}]
-   [drawer]
-   contents])
+(defn screen [title & contents]
+  [rui/mui-theme-provider
+   {:mui-theme (ui/get-mui-theme
+                {:palette {:text-color (ui/color :teal700)}})}
+   (into [:div
+          [rui/app-bar {:title title
+                        :on-left-icon-button-touch-tap open-drawer}]
+          [drawer]]
+         contents)])
 
 (defn transact-fetch-results [res user-id]
   (.log js/console (str "successful result!" (pr-str res)))
