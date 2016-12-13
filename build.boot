@@ -26,7 +26,7 @@
                  [http-kit "2.1.19"]  ;; same as used by boot-http
                  [org.clojars.euccastro/markdown-clj "0.9.89+literal"]
                  ;; used for the sente adapter in deployment
-                 [nginx-clojure "0.4.4"]
+                 [aleph "0.4.1"]
                  [com.cemerick/piggieback "0.2.1" :scope "test"]
                  [posh "0.5.3.3"]
                  [reagent "0.6.0" :exclusions [org.clojure/tools.reader cljsjs/react]]

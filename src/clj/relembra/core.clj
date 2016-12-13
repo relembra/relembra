@@ -1,7 +1,9 @@
 ;;; Compojure and Sente routing.
 
 (ns relembra.core
-  (:require [clojure.pprint :as pp]
+  (:gen-class)
+  (:require [aleph.http :as aleph]
+            [clojure.pprint :as pp]
             [compojure.core :refer (defroutes GET POST)]
             [compojure.route :refer (files not-found resources)]
             [hiccup.core :refer (html)]
@@ -10,7 +12,11 @@
             [relembra.sente :as sente]
             [relembra.util :as util]
             [relembra.github-login :as github-login]
-            [ring.middleware.defaults :refer (wrap-defaults site-defaults)]))
+            [ring.middleware.defaults :refer (wrap-defaults site-defaults)])
+  (:import
+   [io.netty.handler.ssl SslContextBuilder]
+   [java.io File]))
+
 
 (defn requiring-login [f]
   (fn [req & etc]
@@ -84,7 +90,11 @@
 (if util/in-development?
   (sente/start-router!))
 
-;; This is set in nginx.conf as jvm_init_handler_name, so it will get called on
-;; startup.
-(defn nginx-init! [_]
-  (sente/start-router!))
+(defn -main []
+  (sente/start-router!)
+  (aleph/start-server app {:port 443
+                           :ssl-context (.build (SslContextBuilder/forServer
+                                                 (File. "/etc/letsencrypt/live/relembra.estevo.eu/fullchain.pem")
+                                                 (File. "/etc/letsencrypt/live/relembra.estevo.eu/privkey.pem")))})
+  ;;XXX: use aleph.netty/wait-for-close when aleph 0.4.2 is out
+  @(promise))
