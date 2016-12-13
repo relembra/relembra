@@ -18,7 +18,7 @@
                  [crypto-random "1.2.0"]
                  [org.clojure/data.json "0.2.6"]
                  [datascript "0.15.2"]
-                 [com.datomic/datomic-free "0.9.5372"]
+                 [com.datomic/datomic-free "0.9.5372" :exclusions [com.google.guava/guava]]
                  [environ "1.0.3"]
                  [hiccup "1.0.5"]
                  ;; used for the sente adapter in development, and for the http
