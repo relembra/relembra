@@ -7,17 +7,13 @@
   :db/cardinality :db.cardinality/one
   :db/unique :db.unique/identity
   :db/fulltext true
-  :db/doc "A user's github username"
-  :db.install/_attribute :db.part/db}
+  :db/doc "A user's github username"}
 
  {:db/id #db/id[:db.part/db]
   :db/ident :user/of-mappings
-  :db/valueType :db.type/ref
-  :db/cardinality :db.cardinality/many
-  :db/isComponent true
-  :db/index true
-  :db/doc "The entries in the user's optimal factor matrix"
-  :db.install/_attribute :db.part/db}
+  :db/valueType :db.type/string
+  :db/cardinality :db.cardinality/one
+  :db/doc "The EDN (ie. pr-str) serialized entries in the user's optimal factor matrix"}
 
  {:db/id #db/id[:db.part/db]
   :db/ident :user/lembrandos
@@ -25,8 +21,7 @@
   :db/cardinality :db.cardinality/many
   :db/isComponent true
   :db/index true
-  :db/doc "The state of the user's remembering items"
-  :db.install/_attribute :db.part/db}
+  :db/doc "The state of the user's remembering items"}
 
  ;; question
 
@@ -35,36 +30,21 @@
   :db/valueType :db.type/string
   :db/cardinality :db.cardinality/one
   :db/fulltext true
-  :db/doc "A question's body"
-  :db.install/_attribute :db.part/db}
+  :db/doc "A question's body"}
 
  {:db/id #db/id[:db.part/db]
   :db/ident :question/answer
   :db/valueType :db.type/string
   :db/cardinality :db.cardinality/one
   :db/fulltext true
-  :db/doc "The body of a question's answer"
-  :db.install/_attribute :db.part/db}
+  :db/doc "The body of a question's answer"}
 
  {:db/id #db/id[:db.part/db]
   :db/ident :question/owner
   :db/valueType :db.type/ref
   :db/cardinality :db.cardinality/one
   :db/index true
-  :db/doc "The only one who can edit it this question (either the author or whoever made this copy)"
-  :db.install/_attribute :db.part/db}
-
- ;; optimal factor mapping entry
- ;; we use the lembrando's easiness factor and repetition number for the keys of
- ;; the entry
-
- {:db/id #db/id[:db.part/db]
-  :db/ident :of-mapping-entry/value
-  :db/valueType :db.type/float
-  :db/cardinality :db.cardinality/one
-  :db/doc "The optimal factor value"
-  :db/index true
-  :db.install/_attribute :db.part/db}
+  :db/doc "The only one who can edit it this question (either the author or whoever made this copy)"}
 
  ;; lembrando
 
@@ -73,55 +53,27 @@
   :db/valueType :db.type/ref
   :db/cardinality :db.cardinality/one
   :db/index true
-  :db/doc "The question that is being remembered"
-  :db.install/_attribute :db.part/db}
+  :db/doc "The question that is being remembered"}
 
  {:db/id #db/id[:db.part/db]
   :db/ident :lembrando/due-date
   :db/valueType :db.type/instant
   :db/cardinality :db.cardinality/one
   :db/index true
-  :db/doc "Due date for next repetition of this lembrando (with day granularity, time must be 05:00)"
-  :db.install/_attribute :db.part/db}
+  :db/doc "Due date for next repetition of this lembrando (with day granularity, time must be 05:00)"}
 
  {:db/id #db/id[:db.part/db]
-  :db/ident :lembrando/repetition-number
-  :db/valueType :db.type/long
+  :db/ident :lembrando/remembering-state
+  :db/valueType :db.type/string
   :db/cardinality :db.cardinality/one
   :db/index true
-  :db/doc "Repetition number for the purpose of computing intervals"
-  :db.install/_attribute :db.part/db}
-
- {:db/id #db/id[:db.part/db]
-  :db/ident :lembrando/easiness
-  :db/valueType :db.type/float
-  :db/cardinality :db.cardinality/one
-  :db/index true
-  :db/doc "Easiness factor"
-  :db.install/_attribute :db.part/db}
-
- {:db/id #db/id[:db.part/db]
-  :db/ident :lembrando/last-interval
-  :db/valueType :db.type/long
-  :db/cardinality :db.cardinality/one
-  :db/index true
-  :db/doc "Last interval for the purpose of adjusting optimal factors"
-  :db.install/_attribute :db.part/db}
-
- {:db/id #db/id[:db.part/db]
-  :db/ident :lembrando/used-of
-  :db/valueType :db.type/long
-  :db/cardinality :db.cardinality/one
-  :db/index true
-  :db/doc "Optimal factor used to compute last interval, for the purpose of adjusting optimal factors"
-  :db.install/_attribute :db.part/db}
+  :db/doc "edn-serialized remembering state of the given question for the owning user, as returned by sm5"}
 
  {:db/id #db/id[:db.part/db]
   :db/ident :lembrando/needs-repeat?
   :db/valueType :db.type/boolean
   :db/cardinality :db.cardinality/one
   :db/index true
-  :db/doc "Whether this lembrando has been forgotten in a recent session, and thus needs repeating until it gets a quality of 4 or more"
-  :db.install/_attribute :db.part/db}
+  :db/doc "Whether this lembrando has been forgotten in a recent session, and thus needs repeating until it gets a quality of 4 or more"}
 
  ]
