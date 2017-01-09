@@ -10,7 +10,7 @@
   :db/doc "A user's github username"}
 
  {:db/id #db/id[:db.part/db]
-  :db/ident :user/of-mappings
+  :db/ident :user/of-matrix
   :db/valueType :db.type/string
   :db/cardinality :db.cardinality/one
   :db/doc "The EDN (ie. pr-str) serialized entries in the user's optimal factor matrix"}
