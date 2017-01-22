@@ -227,8 +227,16 @@
    [:div {:style {:font-family "Yrsa, serif" :font-size "120%" :color (ui/color :teal900)}}
     [mathjax-box text]]])
 
-(defn rate-recall [lembrando level]
-  (js/alert (str "Rateastes " level)))
+(defn rate-recall [lembrando rate]
+  (sente/send!
+   [:relembra/rate-recall {:lembrando lembrando
+                                       :rate rate}]
+   10000
+   (fn [resp]
+     (when-not (and (cb-success? resp) (= resp :ok))
+       (js/alert (str "Erro tentando ratear: \n" (pr-str resp))))))
+  ;; XXX: anovar estado local
+  )
 
 (defn review []
   (let [[all due] (lembrandos)]

@@ -73,6 +73,13 @@
   [{:keys [?data ring-req uid ?reply-fn]}]
   (?reply-fn (datomic/ops (resolve-placeholders ?data ring-req))))
 
+(defmethod sente/client-msg-handler :relembra/rate-recall
+  [{{:keys [lembrando rate]} :?data
+    :keys [uid ?reply-fn]}]
+  ;; XXX: comprovar que o lembrando é do utente dado.
+  (rate-recall uid lembrando rate)
+  (?reply-fn :ok))
+
 (def root
   (requiring-login
    (fn [req]
