@@ -1,7 +1,10 @@
 ;;; Compojure and Sente routing.
 
 (ns relembra.core
-  (:require [clojure.pprint :as pp]
+  (:require [clj-time.coerce :as t-coerce]
+            [clj-time.core :as t]
+            [clojure.edn :as edn]
+            [clojure.pprint :as pp]
             [compojure.core :refer (defroutes GET POST)]
             [compojure.route :refer (files not-found resources)]
             [hiccup.core :refer (html)]
@@ -10,7 +13,38 @@
             [relembra.sente :as sente]
             [relembra.util :as util]
             [relembra.github-login :as github-login]
-            [ring.middleware.defaults :refer (wrap-defaults site-defaults)]))
+            [ring.middleware.defaults :refer (wrap-defaults site-defaults)]
+            [spaced-repetition.sm5 :as sm5]))
+
+(defn now+days [days]
+  (t-coerce/to-date
+   (t/plus (t/now) (t/days days))))
+
+(defn rate-recall [user lembrando rate]
+  (let [db (d/db @datomic/conn)
+        user-remembering-state
+        (edn/read-string
+         (:user/of-matrix
+          (d/entity db user)))
+        lembrando-remembering-state
+        (edn/read-string
+         (:lembrando/remembering-state
+          (d/entity db lembrando)))
+        {:keys [days-to-next
+                new-user-state
+                new-item-state]}
+        (sm5/next-state rate user-remembering-state lembrando-remembering-state)]
+    (println "Days to next:" days-to-next)
+    (d/transact @datomic/conn
+                [[:db/add user :user/of-matrix (pr-str new-user-state)]
+                 {:db/id lembrando
+                  :lembrando/remembering-state (pr-str new-item-state)
+                  :lembrando/needs-repeat? (< rate 3)
+                  :lembrando/due-date (now+days days-to-next)}
+                 {:db/id "datomic.tx"
+                  :rate-recall/user user
+                  :rate-recall/lembrando lembrando
+                  :rate-recall/rate rate}])))
 
 (defn requiring-login [f]
   (fn [req & etc]

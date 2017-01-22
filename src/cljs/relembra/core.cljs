@@ -13,7 +13,6 @@
             [posh.reagent :as p]
             [reagent.core :as r]
             [relembra.sente :as sente]
-            [spaced-repetition.sm5 :as sm5]
             [taoensso.sente :refer (cb-success?)]))
 
 (defonce conn (let [conn (d/create-conn)]

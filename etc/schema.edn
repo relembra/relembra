@@ -76,4 +76,27 @@
   :db/index true
   :db/doc "Whether this lembrando has been forgotten in a recent session, and thus needs repeating until it gets a quality of 4 or more"}
 
+ ;; Data attached to recall rating transactions
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :rate-recall/user
+  :db/valueType :db.type/ref
+  :db/cardinality :db.cardinality/one
+  :db/index true
+  :db/doc "Whose recall has been rated"}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :rate-recall/lembrando
+  :db/valueType :db.type/ref
+  :db/cardinality :db.cardinality/one
+  :db/index true
+  :db/doc "Which lembrando has been rated"}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :rate-recall/rate
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one
+  :db/index true
+  :db/doc "Rate of recall quality"}
+
  ]
