@@ -17,7 +17,6 @@
 
 (defonce conn (let [conn (d/create-conn)]
                 (d/transact! conn [{:db/id 0
-                                    :test/number 24
                                     :screen/current :loading
                                     :drawer/open false
                                     :addq/question-text ""
@@ -28,7 +27,7 @@
 (def get0-query '[:find ?x . :in $ ?a :where [0 ?a ?x]])
 
 (defn get0 [attr]
-  (d/q get0-query conn attr))
+  (d/q get0-query @conn attr))
 
 (defn posh-get0 [attr]
   @(p/q get0-query conn attr))
@@ -43,6 +42,7 @@
                         [?u :user/lembrandos ?l]])
 
 (defn lembrando-query-results->txn [results user-id]
+  ;; XXX: doesn't allow removing lembrandos!
   (apply concat
          (for [entry results]
            [(update-in (:lembrando/question entry) [:question/owner] :db/id)
@@ -194,14 +194,13 @@
                (time-coerce/from-date t)))
 
 (defn lembrandos []
-  ;; Using datascript query because pull in query is not supported in Posh
-  ;; XXX: move to a combo of q and pulls, so we're reactive.
-  (let [all (d/q '[:find [(pull ?l [*]) ...] :where [?l :lembrando/question]] @conn)
-        due (filter (fn [l]
-                      (or (:lembrando/needs-repeat? l)
-                          (past? (:lembrando/due-date l))))
-                    all)]
-    [all due]))
+  (let [all-ids @(p/q '[:find [?l ...] :where [?l :lembrando/question]] conn)
+        all-entries (doall (for [id all-ids]
+                             @(p/pull conn '[:db/id :lembrando/needs-repeat? :lembrando/due-date] id)))
+        due-entries (filter (fn [e] (or (:lembrando/needs-repeat? e)
+                                       (past? (:lembrando/due-date e))))
+                            all-entries)]
+    [all-entries due-entries]))
 
 (defn welcome []
   (let [[all due] (lembrandos)]
@@ -230,13 +229,18 @@
 (defn rate-recall [lembrando rate]
   (sente/send!
    [:relembra/rate-recall {:lembrando lembrando
-                                       :rate rate}]
+                           :rate rate}]
    10000
    (fn [resp]
-     (when-not (and (cb-success? resp) (= resp :ok))
-       (js/alert (str "Erro tentando ratear: \n" (pr-str resp))))))
-  ;; XXX: anovar estado local
-  )
+     (if-not (cb-success? resp)
+       (js/alert (str "Erro tentando ratear: \n" (pr-str resp)))
+       (let [{:keys [needs-repeat? new-due-date]} resp]
+         (d/transact! conn [{:db/id 0
+                             :review/index (inc (or (get0 :review/index) 0))
+                             :review/show-answer? false}
+                            {:db/id lembrando
+                             :lembrando/due-date new-due-date
+                             :lembrando/needs-repeat? needs-repeat?}]))))))
 
 (defn review []
   (let [[all due] (lembrandos)]
@@ -244,51 +248,49 @@
      (if (empty? due)
        [rui/paper
         [:div {:style {:padding 20}} "Nada a repassar!"]]
-       (if-let [lembrando (posh-get0 :review/lembrando)]
-         (let [question (:lembrando/question
-                         (d/pull (d/db conn)
-                                 '[{:lembrando/question [*]}]
-                                 lembrando))
-               show-answer? (posh-get0 :review/show-answer)]
-           [rui/paper
-            (captioned-markdown "Pergunta" (:question/body question))
-            (if show-answer?
-              [:div
-               (captioned-markdown "Resposta" (:question/answer question))
-               [:div
-                [ui/flat-button
-                 {:label "NPI"
-                  :icon (icons/social-sentiment-very-dissatisfied)
-                  :on-touch-tap #(rate-recall lembrando 1)}]
-                [rui/flat-button
-                 {:label "Algo sona-me"
-                  :icon (icons/social-sentiment-dissatisfied)
-                  :on-touch-tap #(rate-recall lembrando 2)}]
-                [rui/flat-button
-                 {:label "Assi-assi"
-                  :icon (icons/social-sentiment-neutral)
-                  :on-touch-tap #(rate-recall lembrando 3)}]
-                [rui/flat-button
-                 {:label "Custou!"
-                  :icon (icons/social-sentiment-very-satisfied)
-                  :on-touch-tap #(rate-recall lembrando 4)}]
-                [rui/flat-button
-                 {:label "Bah, chupado"
-                  :icon (icons/social-sentiment-satisfied)
-                  :on-touch-tap #(rate-recall lembrando 5)}]]]
-              [:div
-               [rui/flat-button
-                {:label "Mostrar resposta"
-                 :icon (icons/action-visibility)
-                 :on-touch-tap (fn [_]
-                                 (set0! :review/show-answer true))}]])])
-         (let [{need true need-not false}
-               (group-by :lembrando/needs-repeat? due)
-               lembrando (rand-nth (if (empty? need-not)
-                                     need
-                                     need-not))]
-           (set0! :review/lembrando (:db/id lembrando))
-           [:span])))]))
+       (let [{need true need-not false}
+             (group-by :lembrando/needs-repeat? due)
+             group (sort-by :db/id (if (empty? need-not) need need-not))
+             index (mod (or (posh-get0 :review/index) 0)
+                        (count group))
+             lembrando (:db/id (nth group index))
+             question (:lembrando/question
+                       (d/pull (d/db conn)
+                               '[{:lembrando/question [*]}]
+                               lembrando))
+             show-answer? (posh-get0 :review/show-answer?)]
+         [rui/paper
+          (captioned-markdown "Pergunta" (:question/body question))
+          (if show-answer?
+            [:div
+             (captioned-markdown "Resposta" (:question/answer question))
+             [:div
+              [ui/flat-button
+               {:label "NPI"
+                :icon (icons/social-sentiment-very-dissatisfied)
+                :on-touch-tap #(rate-recall lembrando 1)}]
+              [rui/flat-button
+               {:label "Algo sona-me"
+                :icon (icons/social-sentiment-dissatisfied)
+                :on-touch-tap #(rate-recall lembrando 2)}]
+              [rui/flat-button
+               {:label "Assi-assi"
+                :icon (icons/social-sentiment-neutral)
+                :on-touch-tap #(rate-recall lembrando 3)}]
+              [rui/flat-button
+               {:label "Custou!"
+                :icon (icons/social-sentiment-very-satisfied)
+                :on-touch-tap #(rate-recall lembrando 4)}]
+              [rui/flat-button
+               {:label "Bah, chupado"
+                :icon (icons/social-sentiment-satisfied)
+                :on-touch-tap #(rate-recall lembrando 5)}]]]
+            [:div
+             [rui/flat-button
+              {:label "Mostrar resposta"
+               :icon (icons/action-visibility)
+               :on-touch-tap (fn [_]
+                               (set0! :review/show-answer? true))}]])]))]))
 
 (def screens {:loading loading
               :welcome welcome

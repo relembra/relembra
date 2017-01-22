@@ -22,29 +22,39 @@
 
 (defn rate-recall [user lembrando rate]
   (let [db (d/db @datomic/conn)
-        user-remembering-state
-        (edn/read-string
-         (:user/of-matrix
-          (d/entity db user)))
-        lembrando-remembering-state
-        (edn/read-string
-         (:lembrando/remembering-state
-          (d/entity db lembrando)))
-        {:keys [days-to-next
-                new-user-state
-                new-item-state]}
-        (sm5/next-state rate user-remembering-state lembrando-remembering-state)]
-    (println "Days to next:" days-to-next)
-    (d/transact @datomic/conn
-                [[:db/add user :user/of-matrix (pr-str new-user-state)]
-                 {:db/id lembrando
-                  :lembrando/remembering-state (pr-str new-item-state)
-                  :lembrando/needs-repeat? (< rate 3)
-                  :lembrando/due-date (now+days days-to-next)}
-                 {:db/id "datomic.tx"
-                  :rate-recall/user user
-                  :rate-recall/lembrando lembrando
-                  :rate-recall/rate rate}])))
+        lembrando-ent (d/entity db lembrando)
+        needs-repeat? (< rate 3)]
+    (if (:lembrando/needs-repeat? lembrando-ent)
+      (do
+        (when-not needs-repeat?
+          (d/transact @datomic/conn
+                      [[:db/add lembrando :lembrando/needs-repeat? false]]))
+        {:new-due-date (:lembrando/due-date lembrando-ent)
+         :needs-repeat? needs-repeat?})
+      (let [user-remembering-state
+            (edn/read-string
+             (:user/of-matrix (d/entity db user)))
+            lembrando-remembering-state
+            (edn/read-string
+             (:lembrando/remembering-state lembrando-ent))
+            {:keys [days-to-next
+                    new-user-state
+                    new-item-state]}
+            (sm5/next-state rate user-remembering-state lembrando-remembering-state)
+            new-due-date (now+days days-to-next)]
+        (println "Days to next:" days-to-next)
+        (d/transact @datomic/conn
+                    [[:db/add user :user/of-matrix (pr-str new-user-state)]
+                     {:db/id lembrando
+                      :lembrando/remembering-state (pr-str new-item-state)
+                      :lembrando/needs-repeat? needs-repeat?
+                      :lembrando/due-date new-due-date}
+                     {:db/id "datomic.tx"
+                      :rate-recall/user user
+                      :rate-recall/lembrando lembrando
+                      :rate-recall/rate rate}])
+        {:new-due-date new-due-date
+         :needs-repeat? needs-repeat?}))))
 
 (defn requiring-login [f]
   (fn [req & etc]
@@ -77,8 +87,7 @@
   [{{:keys [lembrando rate]} :?data
     :keys [uid ?reply-fn]}]
   ;; XXX: comprovar que o lembrando é do utente dado.
-  (rate-recall uid lembrando rate)
-  (?reply-fn :ok))
+  (?reply-fn (rate-recall uid lembrando rate)))
 
 (def root
   (requiring-login
