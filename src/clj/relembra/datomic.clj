@@ -1,7 +1,10 @@
 (ns relembra.datomic
-  (:require [datomic.api :as d]))
+  (:require [datomic.api :as d]
+            [relembra.util :as util]))
 
-(def conn (delay (d/connect "datomic:free://localhost:4334/relembra")))
+(def conn (delay (d/connect (if util/in-development?
+                              "datomic:free://localhost:4334/relembra"
+                              "datomic:free://datomic:4334/relembra"))))
 
 (defn query [query args]
   (apply d/q query (d/db @conn) args))

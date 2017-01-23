@@ -3,6 +3,9 @@
 (ns relembra.core
   (:gen-class)
   (:require [aleph.http :as aleph]
+            [clj-time.coerce :as t-coerce]
+            [clj-time.core :as t]
+            [clojure.edn :as edn]
             [clojure.pprint :as pp]
             [compojure.core :refer (defroutes GET POST)]
             [compojure.route :refer (files not-found resources)]
@@ -12,11 +15,51 @@
             [relembra.sente :as sente]
             [relembra.util :as util]
             [relembra.github-login :as github-login]
-            [ring.middleware.defaults :refer (wrap-defaults site-defaults)])
-  (:import
-   [io.netty.handler.ssl SslContextBuilder]
-   [java.io File]))
+            [ring.middleware.defaults :refer (wrap-defaults site-defaults)]
+            [spaced-repetition.sm5 :as sm5])
+   (:import
+    [io.netty.handler.ssl SslContextBuilder]
+    [java.io File]))
 
+(defn now+days [days]
+  (t-coerce/to-date
+   (t/plus (t/now) (t/days days))))
+
+(defn rate-recall [user lembrando rate]
+  (let [db (d/db @datomic/conn)
+        lembrando-ent (d/entity db lembrando)
+        needs-repeat? (< rate 3)]
+    (if (:lembrando/needs-repeat? lembrando-ent)
+      (do
+        (when-not needs-repeat?
+          (d/transact @datomic/conn
+                      [[:db/add lembrando :lembrando/needs-repeat? false]]))
+        {:new-due-date (:lembrando/due-date lembrando-ent)
+         :needs-repeat? needs-repeat?})
+      (let [user-remembering-state
+            (edn/read-string
+             (:user/of-matrix (d/entity db user)))
+            lembrando-remembering-state
+            (edn/read-string
+             (:lembrando/remembering-state lembrando-ent))
+            {:keys [days-to-next
+                    new-user-state
+                    new-item-state]}
+            (sm5/next-state rate user-remembering-state lembrando-remembering-state)
+            new-due-date (now+days days-to-next)]
+        (println "Days to next:" days-to-next)
+        (d/transact @datomic/conn
+                    [[:db/add user :user/of-matrix (pr-str new-user-state)]
+                     {:db/id lembrando
+                      :lembrando/remembering-state (pr-str new-item-state)
+                      :lembrando/needs-repeat? needs-repeat?
+                      :lembrando/due-date new-due-date}
+                     {:db/id "datomic.tx"
+                      :rate-recall/user user
+                      :rate-recall/lembrando lembrando
+                      :rate-recall/rate rate}])
+        {:new-due-date new-due-date
+         :needs-repeat? needs-repeat?}))))
 
 (defn requiring-login [f]
   (fn [req & etc]
@@ -44,6 +87,12 @@
 (defmethod sente/client-msg-handler :db/ops
   [{:keys [?data ring-req uid ?reply-fn]}]
   (?reply-fn (datomic/ops (resolve-placeholders ?data ring-req))))
+
+(defmethod sente/client-msg-handler :relembra/rate-recall
+  [{{:keys [lembrando rate]} :?data
+    :keys [uid ?reply-fn]}]
+  ;; XXX: comprovar que o lembrando é do utente dado.
+  (?reply-fn (rate-recall uid lembrando rate)))
 
 (def root
   (requiring-login
@@ -92,9 +141,9 @@
 
 (defn -main []
   (sente/start-router!)
-  (aleph/start-server app {:port 443
+  (aleph/start-server app {:port 62443
                            :ssl-context (.build (SslContextBuilder/forServer
-                                                 (File. "/etc/letsencrypt/live/relembra.estevo.eu/fullchain.pem")
-                                                 (File. "/etc/letsencrypt/live/relembra.estevo.eu/privkey.pem")))})
+                                                 (File. "/etc/letsencrypt/live/relembra.icbink.net/fullchain.pem")
+                                                 (File. "/etc/letsencrypt/live/relembra.icbink.net/privkey.pem")))})
   ;;XXX: use aleph.netty/wait-for-close when aleph 0.4.2 is out
   @(promise))

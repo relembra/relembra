@@ -8,6 +8,7 @@
                  [crisptrutski/boot-cljs-test "0.2.2-SNAPSHOT" :scope "test"]
                  [boot-environ "1.0.3"]
                  [cljs-react-material-ui "0.2.20"]
+                 [clj-time "0.13.0"]
                  ;; using the alpha because that's the version of the API docs
                  ;; in their website.
                  [com.andrewmcveigh/cljs-time "0.5.0-alpha2"]
@@ -18,7 +19,7 @@
                  [crypto-random "1.2.0"]
                  [org.clojure/data.json "0.2.6"]
                  [datascript "0.15.2"]
-                 [com.datomic/datomic-free "0.9.5372" :exclusions [com.google.guava/guava]]
+                 [com.datomic/datomic-free "0.9.5544" :exclusions [com.google.guava/guava]]
                  [environ "1.0.3"]
                  [hiccup "1.0.5"]
                  ;; used for the sente adapter in development, and for the http
@@ -33,7 +34,7 @@
                  [ring/ring-defaults "0.1.5"]
                  [com.taoensso/sente "1.10.0"]
                  [com.taoensso/timbre "4.7.2"]
-                 [org.clojars.euccastro/spaced-repetition "0.1.2"]
+                 [org.clojars.euccastro/spaced-repetition "0.1.3-SNAPSHOT"]
                  [org.clojure/tools.nrepl "0.2.12" :scope "test"]
                  [com.cemerick/url "0.1.1"]
                  [weasel "0.7.0" :scope "test"]])
@@ -69,7 +70,7 @@
 
 (deftask build []
   (comp
-   (cljs :optimizations :advanced)
+   (cljs :optimizations :none)
    (aot :namespace '#{relembra.core})
    (pom :project 'relembra
         :version "0.1.0-SNAPSHOT")
