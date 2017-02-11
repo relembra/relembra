@@ -12,6 +12,7 @@
             [markdown.core :refer (md->html)]
             [posh.reagent :as p]
             [reagent.core :as r]
+            [relembra.reagent-hack :refer (synthetic-text-field)]
             [relembra.sente :as sente]
             [taoensso.sente :refer (cb-success?)]))
 
@@ -90,12 +91,12 @@
      :component-did-update typeset}))
 
 (defn text-field [title value-k text]
-  [rui/text-field
+  [synthetic-text-field
    {:floating-label-text title
     :multi-line true
     :rows 1
     :full-width true
-    :default-value text
+    :value text
     :style {:font-family "Hack, monospace" :font-size "90%"}
     :on-change (fn [e]
                  (let [new-value (.. e -target -value)]

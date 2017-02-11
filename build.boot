@@ -7,7 +7,7 @@
                  [pandeiro/boot-http "0.7.3" :scope "test"]
                  [crisptrutski/boot-cljs-test "0.2.2-SNAPSHOT" :scope "test"]
                  [boot-environ "1.0.3"]
-                 [cljs-react-material-ui "0.2.20"]
+                 [cljs-react-material-ui "0.2.37"]
                  [clj-time "0.13.0"]
                  ;; using the alpha because that's the version of the API docs
                  ;; in their website.
@@ -30,7 +30,7 @@
                  [nginx-clojure "0.4.4"]
                  [com.cemerick/piggieback "0.2.1" :scope "test"]
                  [posh "0.5.3.3"]
-                 [reagent "0.6.0" :exclusions [org.clojure/tools.reader cljsjs/react]]
+                 [reagent "0.6.1-synth3" :exclusions [org.clojure/tools.reader cljsjs/react cljsjs/react-dom]]
                  [ring/ring-defaults "0.1.5"]
                  [com.taoensso/sente "1.10.0"]
                  [com.taoensso/timbre "4.7.2"]

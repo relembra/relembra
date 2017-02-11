@@ -19,7 +19,7 @@
 
 (defmethod server-msg-handler :default
   [{:as ev-msg :keys [event]}]
-  (println "Unhandled klient event: %s" event))
+  (.log js/console (str "Unhandled klient event: " event)))
 
 (defonce router_ (atom nil))
 (defn  stop-router! [] (when-let [stop-f @router_] (stop-f)))
