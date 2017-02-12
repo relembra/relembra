@@ -19,7 +19,7 @@
                  [crypto-random "1.2.0"]
                  [org.clojure/data.json "0.2.6"]
                  [datascript "0.15.2"]
-                 [com.datomic/datomic-free "0.9.5544"]
+                 [com.datomic/datomic-free "0.9.5544" :exclusions [com.google.guava/guava]]
                  [environ "1.0.3"]
                  [hiccup "1.0.5"]
                  ;; used for the sente adapter in development, and for the http
@@ -27,7 +27,7 @@
                  [http-kit "2.1.19"]  ;; same as used by boot-http
                  [org.clojars.euccastro/markdown-clj "0.9.89+literal"]
                  ;; used for the sente adapter in deployment
-                 [nginx-clojure "0.4.4"]
+                 [aleph "0.4.1"]
                  [com.cemerick/piggieback "0.2.1" :scope "test"]
                  [posh "0.5.3.3"]
                  [reagent "0.6.1-synth3" :exclusions [org.clojure/tools.reader cljsjs/react cljsjs/react-dom]]
@@ -70,7 +70,7 @@
 
 (deftask build []
   (comp
-   (cljs :optimizations :advanced)
+   (cljs :optimizations :none)
    (aot :namespace '#{relembra.core})
    (pom :project 'relembra
         :version "0.1.0-SNAPSHOT")
