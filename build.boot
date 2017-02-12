@@ -70,7 +70,7 @@
 
 (deftask build []
   (comp
-   (cljs :optimizations :none)
+   (cljs :optimizations :none)  ;; XXX: add externs to mathjax so I can reenable these
    (aot :namespace '#{relembra.core})
    (pom :project 'relembra
         :version "0.1.0-SNAPSHOT")
