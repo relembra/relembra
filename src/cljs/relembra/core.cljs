@@ -104,9 +104,9 @@
 
 (defn md-editor [title value-k text]
   [:div.row.around-xs {:style {:margin-top "1em" :margin-bottom "1em"}}
-   [:div.col-xs-12.col-sm-5
+   [:div.col-xs-12
     [text-field title value-k text]]
-   [:div.col-xs-12.col-sm-6 {:style {:padding-top "0.5em" :font-family "Yrsa, serif" :font-size "120%"}}
+   [:div.col-xs-12 {:style {:padding-top "0.5em" :font-family "Yrsa, serif" :font-size "120%"}}
     [mathjax-box text]]])
 
 (defn toggle-drawer [b]
@@ -259,7 +259,8 @@
                        (d/pull (d/db conn)
                                '[{:lembrando/question [*]}]
                                lembrando))
-             show-answer? (posh-get0 :review/show-answer?)]
+             show-answer? (posh-get0 :review/show-answer?)
+             editing? (boolean (posh-get0 :review/editing?))]
          [rui/paper
           (captioned-markdown "Pergunta" (:question/body question))
           (if show-answer?
@@ -285,13 +286,58 @@
               [rui/flat-button
                {:label "Bah, chupado"
                 :icon (icons/social-sentiment-satisfied)
-                :on-touch-tap #(rate-recall lembrando 5)}]]]
+                :on-touch-tap #(rate-recall lembrando 5)}]]
+             [:div
+              [ui/flat-button
+               {:label "Editar"
+                :icon (icons/editor-mode-edit)
+                :on-touch-tap #(set0! :review/editing? true)}]]]
             [:div
              [rui/flat-button
               {:label "Mostrar resposta"
                :icon (icons/action-visibility)
                :on-touch-tap (fn [_]
-                               (set0! :review/show-answer? true))}]])]))]))
+                               (set0! :review/show-answer? true))}]])
+          (let [close #(set0! :review/editing? false
+                              :review-edit/question-text false
+                              :review-edit/answer-text false)
+                qtext (or
+                       (posh-get0 :review-edit/question-text)
+                       (:question/body question))
+                atext
+                (or (posh-get0 :review-edit/answer-text)
+                    (:question/answer question))]
+            [rui/dialog {:open editing?
+                         :actions [(r/as-element
+                                    [rui/flat-button
+                                     {:label "Cancelar"
+                                      :icon (icons/navigation-cancel)
+                                      :on-touch-tap close}])
+                                   (r/as-element
+                                    [rui/flat-button
+                                     {:label "Aplicar"
+                                      :icon (icons/action-done)
+                                      :on-touch-tap
+                                      (let [txn
+                                            [{:db/id (:db/id question)
+                                              :question/body qtext
+                                              :question/answer atext}]]
+                                        #(sente/send!
+                                          [:db/ops [[:transact txn]]]
+                                          10000
+                                          (fn [resp]
+                                            (if (cb-success? resp)
+                                              (d/transact! conn txn)
+                                              (js/alert "Error tratando de anovar pergunta: "
+                                                        (pr-str resp)))
+                                            (close))))}])]
+                         :modal true
+                         :onRequestClose close
+                         :autoScrollBodyContent false}
+
+             [:div.container
+              [md-editor "Pergunta" :review-edit/question-text qtext]
+              [md-editor "Resposta" :review-edit/answer-text atext]]])]))]))
 
 (def screens {:loading loading
               :welcome welcome
