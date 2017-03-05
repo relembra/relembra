@@ -16,6 +16,8 @@
             [relembra.sente :as sente]
             [taoensso.sente :refer (cb-success?)]))
 
+(enable-console-print!)
+
 (defonce conn (let [conn (d/create-conn)]
                 (d/transact! conn [{:db/id 0
                                     :screen/current :loading
@@ -243,6 +245,17 @@
                              :lembrando/due-date new-due-date
                              :lembrando/needs-repeat? needs-repeat?}]))))))
 
+(defn delete-lembrando [lembrando]
+  (let [txn [[:db.fn/retractEntity lembrando]]]
+    (sente/send!
+     [:db/ops [[:transact txn]]]
+     10000
+     (fn [resp]
+       (if (cb-success? resp)
+         (d/transact! conn txn)
+         (js/alert "Error tratando de apagar pergunta: "
+                   (pr-str resp)))))))
+
 (defn review []
   (let [[all due] (lembrandos)]
     [screen "Repasso"
@@ -291,7 +304,13 @@
               [ui/flat-button
                {:label "Editar"
                 :icon (icons/editor-mode-edit)
-                :on-touch-tap #(set0! :review/editing? true)}]]]
+                :on-touch-tap #(set0! :review/editing? true)}]
+              [ui/flat-button
+               {:label "Apagar"
+                :icon (icons/action-delete)
+                :on-touch-tap (fn [_]
+                                (delete-lembrando lembrando)
+                                (set0! :review/show-answer? false))}]]]
             [:div
              [rui/flat-button
               {:label "Mostrar resposta"
