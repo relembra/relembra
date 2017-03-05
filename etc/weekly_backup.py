@@ -13,7 +13,7 @@ def warn(txt):
     os.system("""echo "At %s: %s" | mail -s "WARNING: %s" euccastro@gmail.com""" % (datetime.now(), txt, txt))
 
 def backup():
-    backup_root = "/opt/datomic-free-0.9.5372/bak"
+    backup_root = "/opt/datomic/bak"
     tar_name = "%s.tar.xz" % day_abbrev()
     os.chdir(backup_root)
     retcode = os.system("tar -cJvf %s mon" % tar_name)
