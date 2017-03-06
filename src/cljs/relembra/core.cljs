@@ -9,35 +9,15 @@
             [cljs-time.core :as time]
             [cljs-time.coerce :as time-coerce]
             [datascript.core :as d]
-            [markdown.core :refer (md->html)]
             [posh.reagent :as p]
             [reagent.core :as r]
-            [relembra.reagent-hack :refer (synthetic-text-field)]
+            [relembra.posh-conn :as pc :refer (conn get0 posh-get0 set0!)]
+            [relembra.search :as search]
             [relembra.sente :as sente]
+            [relembra.util :as util :refer (screen)]
             [taoensso.sente :refer (cb-success?)]))
 
 (enable-console-print!)
-
-(defonce conn (let [conn (d/create-conn)]
-                (d/transact! conn [{:db/id 0
-                                    :screen/current :loading
-                                    :drawer/open false
-                                    :addq/question-text ""
-                                    :addq/answer-text ""}])
-                (p/posh! conn)
-                conn))
-
-(def get0-query '[:find ?x . :in $ ?a :where [0 ?a ?x]])
-
-(defn get0 [attr]
-  (d/q get0-query @conn attr))
-
-(defn posh-get0 [attr]
-  @(p/q get0-query conn attr))
-
-(defn set0! [& args]
-  (p/transact! conn [(into {:db/id 0} (map vec (partition 2 args)))]))
-
 
 (def lembrandos-query '[:find ((pull ?l [* {:lembrando/question [*]}]) ...)
                         :in $ ?u
@@ -80,72 +60,6 @@
                                               :screen/current :welcome}]
                                             (lembrando-query-results->txn lembrandos uid))))))))))
 
-
-(defn typeset [c]
-  (js/MathJax.Hub.Queue (array "Typeset" js/MathJax.Hub (r/dom-node c))))
-
-(defn markdown-box [text]
-  [:div {:dangerouslySetInnerHTML {:__html (md->html text :inhibit-separator "$")}}])
-
-(def mathjax-box
-  (with-meta markdown-box
-    {:component-did-mount typeset
-     :component-did-update typeset}))
-
-(defn text-field [title value-k text]
-  [synthetic-text-field
-   {:floating-label-text title
-    :multi-line true
-    :rows 1
-    :full-width true
-    :value text
-    :style {:font-family "Hack, monospace" :font-size "90%"}
-    :on-change (fn [e]
-                 (let [new-value (.. e -target -value)]
-                   (set0! value-k new-value)))}])
-
-(defn md-editor [title value-k text]
-  [:div.row.around-xs {:style {:margin-top "1em" :margin-bottom "1em"}}
-   [:div.col-xs-12
-    [text-field title value-k text]]
-   [:div.col-xs-12 {:style {:padding-top "0.5em" :font-family "Yrsa, serif" :font-size "120%"}}
-    [mathjax-box text]]])
-
-(defn toggle-drawer [b]
-  (set0! :drawer/open b))
-
-(defn open-drawer [& args]
-  (toggle-drawer true))
-
-(defn close-drawer [& args]
-  (toggle-drawer false))
-
-(defn drawer []
-  (let [open (posh-get0 :drawer/open)]
-    [rui/drawer
-     {:docked false
-      :width 200
-      :open open
-      :on-request-change toggle-drawer}
-     [rui/menu-item {:on-touch-tap
-                     (fn [x]
-                       (set0! :drawer/open false :screen/current :welcome))}
-      "Resumo"]
-     [rui/menu-item {:on-touch-tap
-                     (fn[x]
-                       (set0! :drawer/open false :screen/current :add-lembrando))}
-      "Acrescenta pergunta"]]))
-
-(defn screen [title & contents]
-  [rui/mui-theme-provider
-   {:mui-theme (ui/get-mui-theme
-                {:palette {:text-color (ui/color :teal700)}})}
-   (into [:div
-          [rui/app-bar {:title title
-                        :on-left-icon-button-touch-tap open-drawer}]
-          [drawer]]
-         contents)])
-
 (defn transact-fetch-results [res user-id]
   (.log js/console (str "successful result!" (pr-str res)))
   (p/transact! conn (lembrando-query-results->txn res user-id)))
@@ -167,8 +81,8 @@
         atext (posh-get0 :addq/answer-text)]
     [screen "Acrescenta pergunta"
      [:div.container
-      [md-editor "Pergunta" :addq/question-text qtext]
-      [md-editor "Resposta" :addq/answer-text atext]
+      [util/md-editor "Pergunta" :addq/question-text qtext]
+      [util/md-editor "Resposta" :addq/answer-text atext]
       [:div.row {:style {:padding "0px 10px"}}
        [:div.col
         [:div.box
@@ -227,7 +141,7 @@
    [:div {:style {:font-size "80%" :color (ui/color :teal400)}}
     caption]
    [:div {:style {:font-family "Yrsa, serif" :font-size "120%" :color (ui/color :teal900)}}
-    [mathjax-box text]]])
+    [util/mathjax-box text]]])
 
 (defn rate-recall [lembrando rate]
   (sente/send!
@@ -245,17 +159,6 @@
                              :lembrando/due-date new-due-date
                              :lembrando/needs-repeat? needs-repeat?}]))))))
 
-(defn delete-lembrando [lembrando]
-  (let [txn [[:db.fn/retractEntity lembrando]]]
-    (sente/send!
-     [:db/ops [[:transact txn]]]
-     10000
-     (fn [resp]
-       (if (cb-success? resp)
-         (d/transact! conn txn)
-         (js/alert "Error tratando de apagar pergunta: "
-                   (pr-str resp)))))))
-
 (defn review []
   (let [[all due] (lembrandos)]
     [screen "Repasso"
@@ -269,11 +172,10 @@
                         (count group))
              lembrando (:db/id (nth group index))
              question (:lembrando/question
-                       (d/pull (d/db conn)
+                       @(p/pull conn
                                '[{:lembrando/question [*]}]
                                lembrando))
-             show-answer? (posh-get0 :review/show-answer?)
-             editing? (boolean (posh-get0 :review/editing?))]
+             show-answer? (posh-get0 :review/show-answer?)]
          [rui/paper
           (captioned-markdown "Pergunta" (:question/body question))
           (if show-answer?
@@ -301,66 +203,24 @@
                 :icon (icons/social-sentiment-satisfied)
                 :on-touch-tap #(rate-recall lembrando 5)}]]
              [:div
-              [ui/flat-button
-               {:label "Editar"
-                :icon (icons/editor-mode-edit)
-                :on-touch-tap #(set0! :review/editing? true)}]
+              [util/edit-button (:db/id question)]
               [ui/flat-button
                {:label "Apagar"
                 :icon (icons/action-delete)
                 :on-touch-tap (fn [_]
-                                (delete-lembrando lembrando)
+                                (util/delete-lembrando lembrando)
                                 (set0! :review/show-answer? false))}]]]
             [:div
              [rui/flat-button
               {:label "Mostrar resposta"
                :icon (icons/action-visibility)
                :on-touch-tap (fn [_]
-                               (set0! :review/show-answer? true))}]])
-          (let [close #(set0! :review/editing? false
-                              :review-edit/question-text false
-                              :review-edit/answer-text false)
-                qtext (or
-                       (posh-get0 :review-edit/question-text)
-                       (:question/body question))
-                atext
-                (or (posh-get0 :review-edit/answer-text)
-                    (:question/answer question))]
-            [rui/dialog {:open editing?
-                         :actions [(r/as-element
-                                    [rui/flat-button
-                                     {:label "Cancelar"
-                                      :icon (icons/navigation-cancel)
-                                      :on-touch-tap close}])
-                                   (r/as-element
-                                    [rui/flat-button
-                                     {:label "Aplicar"
-                                      :icon (icons/action-done)
-                                      :on-touch-tap
-                                      (let [txn
-                                            [{:db/id (:db/id question)
-                                              :question/body qtext
-                                              :question/answer atext}]]
-                                        #(sente/send!
-                                          [:db/ops [[:transact txn]]]
-                                          10000
-                                          (fn [resp]
-                                            (if (cb-success? resp)
-                                              (d/transact! conn txn)
-                                              (js/alert "Error tratando de anovar pergunta: "
-                                                        (pr-str resp)))
-                                            (close))))}])]
-                         :modal true
-                         :onRequestClose close
-                         :autoScrollBodyContent false}
-
-             [:div.container
-              [md-editor "Pergunta" :review-edit/question-text qtext]
-              [md-editor "Resposta" :review-edit/answer-text atext]]])]))]))
+                               (set0! :review/show-answer? true))}]])]))]))
 
 (def screens {:loading loading
               :welcome welcome
               :review review
+              :search search/search
               :add-lembrando add-lembrando})
 
 (defn app []
