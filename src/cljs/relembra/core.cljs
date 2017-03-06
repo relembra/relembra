@@ -204,6 +204,7 @@
                 :on-touch-tap #(rate-recall lembrando 5)}]]
              [:div
               [util/edit-button (:db/id question)]
+              [util/edit-modal]
               [ui/flat-button
                {:label "Apagar"
                 :icon (icons/action-delete)

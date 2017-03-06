@@ -35,6 +35,7 @@
         (if (empty? results)
           [rui/paper {:style {:padding 20}} "Ningum resultado"]
           [:div
+           [util/edit-modal]
            (for [[lid qid q a] results]
              [rui/paper {:key lid :style {:color (ui/color :teal900)}}
               [util/mathjax-box q]

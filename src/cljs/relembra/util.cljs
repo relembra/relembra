@@ -81,11 +81,12 @@
    [:div.col-xs-12 {:style {:padding-top "0.5em"}}
     [mathjax-box text]]])
 
-(defn editing-modal [qid]
-  (let [editing? (boolean (pc/posh-get0 :modal/editing?))
+(defn edit-modal []
+  (let [qid (pc/posh-get0 :modal/editing)
         {:keys [question/body question/answer]}
-        @(p/pull pc/conn '[:question/body :question/answer] qid)
-        close #(pc/set0! :modal/editing? false
+        (when qid
+          @(p/pull pc/conn '[:question/body :question/answer] qid))
+        close #(pc/set0! :modal/editing false
                          :edit-modal/question-text false
                          :edit-modal/answer-text false)
         qtext
@@ -95,7 +96,7 @@
         atext
         (or (pc/posh-get0 :edit-modal/answer-text)
             answer)]
-    [rui/dialog {:open editing?
+    [rui/dialog {:open (boolean qid)
                  :actions [(r/as-element
                             [rui/flat-button
                              {:label "Cancelar"
@@ -132,8 +133,7 @@
    [ui/flat-button
     {:label "Editar"
      :icon (icons/editor-mode-edit)
-     :on-touch-tap #(pc/set0! :modal/editing? true)}]
-   [editing-modal qid]])
+     :on-touch-tap #(pc/set0! :modal/editing qid)}]])
 
 (defn delete-lembrando [lembrando]
   (let [txn [[:db.fn/retractEntity lembrando]]]
