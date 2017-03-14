@@ -150,7 +150,7 @@
    10000
    (fn [resp]
      (if-not (cb-success? resp)
-       (js/alert (str "Erro tentando ratear: \n" (pr-str resp)))
+       (js/alert (str "Erro tentando ratear:\n" (pr-str resp)))
        (let [{:keys [needs-repeat? new-due-date]} resp]
          (d/transact! conn [{:db/id 0
                              :review/index (inc (or (get0 :review/index) 0))
@@ -158,6 +158,16 @@
                             {:db/id lembrando
                              :lembrando/due-date new-due-date
                              :lembrando/needs-repeat? needs-repeat?}]))))))
+
+(defn postpone [lembrando]
+  (sente/send!
+   [:relembra/postpone {:lembrando lembrando}]
+   10000
+   (fn [resp]
+     (if-not (cb-success? resp)
+       (js/alert (str "Erro tentando adiar:\n" (pr-str resp)))
+       (let [{:keys [new-due-date]} resp]
+         (d/transact! conn [[:db/add lembrando :lembrando/due-date new-due-date]]))))))
 
 (defn review []
   (let [[all due] (lembrandos)]
@@ -216,7 +226,11 @@
               {:label "Mostrar resposta"
                :icon (icons/action-visibility)
                :on-touch-tap (fn [_]
-                               (set0! :review/show-answer? true))}]])]))]))
+                               (set0! :review/show-answer? true))}]
+             [rui/flat-button
+              {:label "Adiar"
+               :icon (icons/av-skip-next)
+               :on-touch-tap #(postpone lembrando)}]])]))]))
 
 (def screens {:loading loading
               :welcome welcome

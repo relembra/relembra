@@ -61,6 +61,20 @@
         {:new-due-date new-due-date
          :needs-repeat? needs-repeat?}))))
 
+(defn postpone [lembrando]
+  (let [new-due-date (now+days 1)]
+    (d/transact @datomic/conn [[:db/add lembrando :lembrando/due-date new-due-date]])
+    {:new-due-date new-due-date}))
+
+(defn assert-owner [lembrando user]
+  (when-not (d/q '[:find ?l .
+                   :in $ ?l ?u
+                   :where [?u :user/lembrandos ?l]]
+                 (d/db @datomic/conn)
+                 lembrando
+                 user)
+    (throw (RuntimeException. (str user " is the wrong owner for " lembrando)))))
+
 (defn requiring-login [f]
   (fn [req & etc]
     (if (get-in req [:session :user/github-name])
@@ -91,8 +105,14 @@
 (defmethod sente/client-msg-handler :relembra/rate-recall
   [{{:keys [lembrando rate]} :?data
     :keys [uid ?reply-fn]}]
-  ;; XXX: comprovar que o lembrando é do utente dado.
+  (assert-owner lembrando uid)
   (?reply-fn (rate-recall uid lembrando rate)))
+
+(defmethod sente/client-msg-handler :relembra/postpone
+  [{{:keys [lembrando]} :?data
+    :keys [uid ?reply-fn]}]
+  (assert-owner lembrando uid)
+  (?reply-fn (postpone lembrando)))
 
 (def root
   (requiring-login
