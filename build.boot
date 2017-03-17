@@ -32,7 +32,7 @@
                  [posh "0.5.3.3"]
                  [reagent "0.6.1-synth3" :exclusions [org.clojure/tools.reader cljsjs/react cljsjs/react-dom]]
                  [ring/ring-defaults "0.1.5"]
-                 [com.taoensso/sente "1.10.0"]
+                 [com.taoensso/sente "1.11.0"]
                  [com.taoensso/timbre "4.7.2"]
                  [org.clojars.euccastro/spaced-repetition "0.1.3-SNAPSHOT"]
                  [org.clojure/tools.nrepl "0.2.12" :scope "test"]

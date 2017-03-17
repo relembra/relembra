@@ -49,7 +49,8 @@
                  10000
                  (fn [ret]
                    (.log js/console (str "Returned: " ret))
-                   (when (cb-success? ret)  ; XXX: handle failure!
+                   (if-not (cb-success? ret)
+                     (js/alert (str "Erro tentando pegar datos iniciais:\n" ret))
                      (let [lembrandos (first ret)]
                        (if (= (count lembrandos) 0)
                          (set0! :user/id uid
