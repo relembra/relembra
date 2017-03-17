@@ -29,4 +29,6 @@
           (sente/start-client-chsk-router!
            ch-chsk wrapped-server-msg-handler)))
 
-(defonce _start-once (start-router!))
+(let [d (delay (start-router!))]
+  (defn start-once! []
+    @d))

@@ -245,5 +245,6 @@
    [(screens (posh-get0 :screen/current))]])
 
 (defn ^:export main []
+  (sente/start-once!)
   (r/render [app]
             (js/document.getElementById "app_container")))
