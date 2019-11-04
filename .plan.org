@@ -1,2 +1,17 @@
 * tasks
-** set up cider middleware
+** set up datomic connection
+*** para development usar in-memory com migration de sample data
+**** copiar schema do projeto velho
+* notas
+** otimizar para
+*** uso pessoal
+*** funcionalidade, nom sleekness
+*** facilidade de desenvolvimento
+**** passar de material-ui e dependências desnecessárias
+** como arranco isto
+*** cider-jack-in (,si)
+*** (start)
+*** lein shadow watch app
+*** cider-connect-cljs
+*** escolher shadow-select
+*** escolher :app

@@ -11,5 +11,5 @@
  ; :database-url "datomic:free://localhost:4334/relembra_dev"
 
  ; alternatively, you can use the datomic mem db for development:
- ; :database-url "datomic:mem://relembra_datomic_dev"
+ :database-url "datomic:mem://relembra_datomic_dev"
 }
