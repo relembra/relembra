@@ -1,9 +1,9 @@
 (ns relembra.db.core
   (:require
-    [datomic.api :as d]
-    [io.rkn.conformity :as c]
-    [mount.core :refer [defstate]]
-    [relembra.config :refer [env]]))
+   [datomic.api :as d]
+   [io.rkn.conformity :as c]
+   [mount.core :refer [defstate]]
+   [relembra.config :refer [env]]))
 
 (defn install-norms
   "This function expected to be called at system start up.
