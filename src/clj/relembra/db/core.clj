@@ -76,6 +76,8 @@
                    :where [?e ?attr ?val]]
                  db attr val)))
 
-
-(defn find-user [db id]
-  (d/touch (find-one-by db :user/id id)))
+(defn username->user
+  ([name]
+   (username->user name (d/db conn)))
+  ([name db]
+   (d/pull db '[*] [:user/name name])))

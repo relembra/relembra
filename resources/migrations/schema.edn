@@ -107,4 +107,6 @@
            :db/doc "Rate of recall quality"}]]}
 
  :relembra/dev-data
- {:txes [[{:user/name "manolo"}]]}}
+ {:txes [[{:user/name "manolo"
+           ;; "senha"
+           :user/pass-hash "scrypt$0fd12d508beb0681a31e5c3b$65536$8$1$2473302431303038303124794a55584f5a5145796a585233326d364a75693356773d3d244d50775a6c5745416e687154414338364c7a4331512b467854767a657665306f617a55794e3355484764343d"}]]}}

@@ -1,5 +1,8 @@
 * tasks
 ** set up authentication
+*** redirections
+**** when trying to access a protected resource, go to login page, with redirection in session
+**** once you're logged in, redirect back to the page you wanted to go
 * notas
 ** otimizar para
 *** uso pessoal
