@@ -2,6 +2,10 @@
 ** set up datomic connection
 *** para development usar in-memory com migration de sample data
 **** copiar schema do projeto velho
+***** para onde vai?
+      para onde está o novo
+**** copiar utilities do projeto velho
+     acrescentar lembrandos, etc.
 * notas
 ** otimizar para
 *** uso pessoal
