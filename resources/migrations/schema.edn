@@ -1,102 +1,110 @@
-[
- ;; user
+{:relembra/schema
+ {:txes [[
+          ;; user
 
- {:db/id #db/id[:db.part/db]
-  :db/ident :user/github-name
-  :db/valueType :db.type/string
-  :db/cardinality :db.cardinality/one
-  :db/unique :db.unique/identity
-  :db/fulltext true
-  :db/doc "A user's github username"}
+          {:db/id #db/id[:db.part/db]
+           :db/ident :user/name
+           :db/valueType :db.type/string
+           :db/cardinality :db.cardinality/one
+           :db/unique :db.unique/identity
+           :db/fulltext true
+           :db/doc "A user's username"}
 
- {:db/id #db/id[:db.part/db]
-  :db/ident :user/of-matrix
-  :db/valueType :db.type/string
-  :db/cardinality :db.cardinality/one
-  :db/doc "The EDN (ie. pr-str) serialized entries in the user's optimal factor matrix"}
+          {:db/id #db/id[:db.part/db]
+           :db/ident :user/pass-hash
+           :db/valueType :db.type/string
+           :db/cardinality :db.cardinality/one
+           :db/doc "A user's hashed password"}
 
- {:db/id #db/id[:db.part/db]
-  :db/ident :user/lembrandos
-  :db/valueType :db.type/ref
-  :db/cardinality :db.cardinality/many
-  :db/isComponent true
-  :db/index true
-  :db/doc "The state of the user's remembering items"}
+          {:db/id #db/id[:db.part/db]
+           :db/ident :user/of-matrix
+           :db/valueType :db.type/string
+           :db/cardinality :db.cardinality/one
+           :db/doc "The EDN (ie. pr-str) serialized entries in the user's optimal factor matrix"}
 
- ;; question
+          {:db/id #db/id[:db.part/db]
+           :db/ident :user/lembrandos
+           :db/valueType :db.type/ref
+           :db/cardinality :db.cardinality/many
+           :db/isComponent true
+           :db/index true
+           :db/doc "The state of the user's remembering items"}
 
- {:db/id #db/id[:db.part/db]
-  :db/ident :question/body
-  :db/valueType :db.type/string
-  :db/cardinality :db.cardinality/one
-  :db/fulltext true
-  :db/doc "A question's body"}
+          ;; question
 
- {:db/id #db/id[:db.part/db]
-  :db/ident :question/answer
-  :db/valueType :db.type/string
-  :db/cardinality :db.cardinality/one
-  :db/fulltext true
-  :db/doc "The body of a question's answer"}
+          {:db/id #db/id[:db.part/db]
+           :db/ident :question/body
+           :db/valueType :db.type/string
+           :db/cardinality :db.cardinality/one
+           :db/fulltext true
+           :db/doc "A question's body"}
 
- {:db/id #db/id[:db.part/db]
-  :db/ident :question/owner
-  :db/valueType :db.type/ref
-  :db/cardinality :db.cardinality/one
-  :db/index true
-  :db/doc "The only one who can edit it this question (either the author or whoever made this copy)"}
+          {:db/id #db/id[:db.part/db]
+           :db/ident :question/answer
+           :db/valueType :db.type/string
+           :db/cardinality :db.cardinality/one
+           :db/fulltext true
+           :db/doc "The body of a question's answer"}
 
- ;; lembrando
+          {:db/id #db/id[:db.part/db]
+           :db/ident :question/owner
+           :db/valueType :db.type/ref
+           :db/cardinality :db.cardinality/one
+           :db/index true
+           :db/doc "The only user who can edit this question (either the author or whoever made this copy)"}
 
- {:db/id #db/id[:db.part/db]
-  :db/ident :lembrando/question
-  :db/valueType :db.type/ref
-  :db/cardinality :db.cardinality/one
-  :db/index true
-  :db/doc "The question that is being remembered"}
+          ;; lembrando
 
- {:db/id #db/id[:db.part/db]
-  :db/ident :lembrando/due-date
-  :db/valueType :db.type/instant
-  :db/cardinality :db.cardinality/one
-  :db/index true
-  :db/doc "Due date for next repetition of this lembrando (with day granularity, time must be 05:00)"}
+          {:db/id #db/id[:db.part/db]
+           :db/ident :lembrando/question
+           :db/valueType :db.type/ref
+           :db/cardinality :db.cardinality/one
+           :db/index true
+           :db/doc "The question that is being remembered"}
 
- {:db/id #db/id[:db.part/db]
-  :db/ident :lembrando/remembering-state
-  :db/valueType :db.type/string
-  :db/cardinality :db.cardinality/one
-  :db/index true
-  :db/doc "edn-serialized remembering state of the given question for the owning user, as returned by sm5"}
+          {:db/id #db/id[:db.part/db]
+           :db/ident :lembrando/due-date
+           :db/valueType :db.type/instant
+           :db/cardinality :db.cardinality/one
+           :db/index true
+           :db/doc "Due date for next repetition of this lembrando (with day granularity, time must be 05:00)"}
 
- {:db/id #db/id[:db.part/db]
-  :db/ident :lembrando/needs-repeat?
-  :db/valueType :db.type/boolean
-  :db/cardinality :db.cardinality/one
-  :db/index true
-  :db/doc "Whether this lembrando has been forgotten in a recent session, and thus needs repeating until it gets a quality of 4 or more"}
+          {:db/id #db/id[:db.part/db]
+           :db/ident :lembrando/remembering-state
+           :db/valueType :db.type/string
+           :db/cardinality :db.cardinality/one
+           :db/index true
+           :db/doc "edn-serialized remembering state of the given question for the owning user, as returned by sm5"}
 
- ;; Data attached to recall rating transactions
+          {:db/id #db/id[:db.part/db]
+           :db/ident :lembrando/needs-repeat?
+           :db/valueType :db.type/boolean
+           :db/cardinality :db.cardinality/one
+           :db/index true
+           :db/doc "Whether this lembrando has been forgotten in a recent session, and thus needs repeating until it gets a quality of 4 or more"}
 
- {:db/id #db/id[:db.part/db]
-  :db/ident :rate-recall/user
-  :db/valueType :db.type/ref
-  :db/cardinality :db.cardinality/one
-  :db/index true
-  :db/doc "Whose recall has been rated"}
+          ;; Data attached to recall rating transactions
 
- {:db/id #db/id[:db.part/db]
-  :db/ident :rate-recall/lembrando
-  :db/valueType :db.type/ref
-  :db/cardinality :db.cardinality/one
-  :db/index true
-  :db/doc "Which lembrando has been rated"}
+          {:db/id #db/id[:db.part/db]
+           :db/ident :rate-recall/user
+           :db/valueType :db.type/ref
+           :db/cardinality :db.cardinality/one
+           :db/index true
+           :db/doc "Whose recall has been rated"}
 
- {:db/id #db/id[:db.part/db]
-  :db/ident :rate-recall/rate
-  :db/valueType :db.type/long
-  :db/cardinality :db.cardinality/one
-  :db/index true
-  :db/doc "Rate of recall quality"}
+          {:db/id #db/id[:db.part/db]
+           :db/ident :rate-recall/lembrando
+           :db/valueType :db.type/ref
+           :db/cardinality :db.cardinality/one
+           :db/index true
+           :db/doc "Which lembrando has been rated"}
 
- ]
+          {:db/id #db/id[:db.part/db]
+           :db/ident :rate-recall/rate
+           :db/valueType :db.type/long
+           :db/cardinality :db.cardinality/one
+           :db/index true
+           :db/doc "Rate of recall quality"}]]}
+
+ :relembra/dev-data
+ {:txes [[{:user/name "manolo"}]]}}

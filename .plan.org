@@ -1,8 +1,5 @@
 * tasks
-** set up datomic connection
-*** para development usar in-memory com migration de sample data
-**** copiar utilities do projeto velho
-     acrescentar lembrandos, etc.
+** set up authentication
 * notas
 ** otimizar para
 *** uso pessoal

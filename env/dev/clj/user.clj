@@ -28,4 +28,16 @@
   (stop)
   (start))
 
+(comment
 
+  (restart)
+
+  (def url (:database-url env))
+  (require '[datomic.api :as d])
+  (d/create-database url)
+
+  (def conn (d/connect url))
+  (def norms (:database-norms env))
+  (relembra.db.core/install-norms conn norms)
+
+  (d/q '[:find ?n :where [_ :user/name ?n]] (d/db conn))

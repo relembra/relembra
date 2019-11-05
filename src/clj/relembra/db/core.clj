@@ -5,18 +5,24 @@
     [mount.core :refer [defstate]]
     [relembra.config :refer [env]]))
 
-(defstate conn
-  :start (do (-> env :database-url d/create-database) (-> env :database-url d/connect))
-  :stop (-> conn .release))
-
-(defn install-schema
+(defn install-norms
   "This function expected to be called at system start up.
 
-  Datomic schema migraitons or db preinstalled data can be put into 'migrations/schema.edn'
+  Datomic schema migrations or db preinstalled data can be put into 'migrations/schema.edn'
   Every txes will be executed exactly once no matter how many times system restart."
-  [conn]
-  (let [norms-map (c/read-resource "migrations/schema.edn")]
-    (c/ensure-conforms conn norms-map (keys norms-map))))
+  [conn norms]
+  (c/ensure-conforms conn
+                     (c/read-resource "migrations/schema.edn")
+                     norms))
+
+(defstate conn
+  :start (let [url (:database-url env)
+               _ (d/create-database url)
+               conn (d/connect (:database-url env))
+               norms (:database-norms env)]
+           (when norms (install-norms conn norms))
+           conn)
+  :stop (-> conn .release))
 
 (defn show-schema
   "Show currenly installed schema"
